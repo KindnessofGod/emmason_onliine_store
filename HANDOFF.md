@@ -203,6 +203,20 @@ Chromium is pre-installed. Launch with
 `executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"`.
 Do **not** run `playwright install`.
 
+Admin credentials come from `VERIFY_ADMIN_EMAIL` / `VERIFY_ADMIN_PASSWORD`,
+falling back to the local Docker ones.
+
+**Against a hosted project, step 7 (admin sign-in) cannot pass in this
+sandbox.** The egress proxy resets Chromium's `CONNECT`, so the browser cannot
+reach `*.supabase.co` — and admin sign-in is the one flow that calls Supabase
+from client code. Every server-rendered flow is unaffected and does verify.
+The admin area itself was confirmed against the hosted database by minting a
+session from Node and writing the `sb-<ref>-auth-token` cookie into the
+context: overview, orders, products and applications all render, with zero
+console errors. This is an environment limit, not an application bug — the same
+flow passes end to end against local Docker Supabase, where the browser only
+ever talks to localhost.
+
 ### Bugs found this way, not by inspection
 
 - `place_order()` called `gen_random_bytes()` from pgcrypto, which Supabase
@@ -221,11 +235,15 @@ Do **not** run `playwright install`.
 1. **Real photography.** `ProductImage` draws a branded gradient tile per
    category so nothing looks broken, but this is a content problem — ask the
    user for images.
-2. **A hosted Supabase project.** Blocked: the account is at its free-tier
-   limit of 2 active projects. The user must pause one or upgrade.
+2. ~~**A hosted Supabase project.**~~ **Done.** Project `Emmanson Store`
+   (ref `kdpbuuaibwqktqdwzayu`, eu-west-1) on a second Supabase account, so the
+   user's other projects were left untouched. All six migrations and both seeds
+   are applied; 16 categories, 64 products, 5 sellers, 37 delivery zones.
 3. **Paystack keys.** The integration is complete but has never run against
-   the live API. WhatsApp ordering works without them.
-4. **Deploy.** Vercel MCP tools are available; blocked on item 2.
+   the live API. WhatsApp ordering works without them, and card payment stays
+   hidden until `PAYSTACK_SECRET_KEY` is set.
+4. **Deploy.** Vercel MCP tools are available. Unblocked — not yet done,
+   because publishing the store is the user's call.
 
 ### Significant
 

@@ -3,8 +3,17 @@ import { chromium } from "playwright";
 const OUT = "/tmp/claude-0/-home-user-emmason-onliine-store/610feaac-a03d-58ca-9fd3-5c83b902323b/scratchpad";
 const BASE = "http://localhost:3000";
 
+// Against a hosted Supabase project the browser itself must reach the internet
+// — admin sign-in calls GoTrue from client code. In sandboxes where egress is
+// proxied, Node picks HTTPS_PROXY up on its own but Chromium does not, so pass
+// it through explicitly and keep localhost direct.
+const proxyServer = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+
 const browser = await chromium.launch({
   executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+  ...(proxyServer
+    ? { proxy: { server: proxyServer, bypass: "localhost,127.0.0.1" } }
+    : {}),
 });
 const context = await browser.newContext({ viewport: { width: 1360, height: 900 } });
 const page = await context.newPage();
@@ -113,8 +122,8 @@ await shot("m07-seller-applied");
 // --- 7. Admin ---------------------------------------------------------------
 console.log("7. Admin");
 await page.goto(`${BASE}/admin`, { waitUntil: "networkidle" });
-await page.fill("#email", "admin@emmason.test");
-await page.fill("#password", "emmason-dev-2026");
+await page.fill("#email", process.env.VERIFY_ADMIN_EMAIL ?? "admin@emmason.test");
+await page.fill("#password", process.env.VERIFY_ADMIN_PASSWORD ?? "emmason-dev-2026");
 await page.getByRole("button", { name: /sign in/i }).click();
 await page.waitForURL((u) => !u.pathname.includes("login"), { timeout: 20000 });
 await page.waitForTimeout(1500);
