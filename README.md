@@ -1,23 +1,32 @@
 # Emmason — multilingual electronics marketplace
 
 Storefront and seller marketplace for **Emmason Mobile Phones, Tech & Gadgets**
-(No 24 Day Star Plaza, Owerri). Customers buy directly; verified third-party
-sellers list alongside the house catalogue.
+(No 24 Day Star Plaza, Owerri, Imo State). Customers buy directly in one of five
+languages; verified third-party sellers list alongside the house catalogue.
 
-Built with Next.js 16 (App Router), React 19, TypeScript and Tailwind CSS v4.
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · Supabase ·
+Paystack
+
+New to this codebase? Read [`HANDOFF.md`](./HANDOFF.md) first — it covers the
+decisions already made and the questions still open.
 
 ## Getting started
 
+Node 20+ and Docker.
+
 ```bash
 npm install
-npm run dev      # http://localhost:3000
+npx supabase start          # Postgres, PostgREST and Auth in Docker
+cp .env.example .env.local  # fill in from what `supabase start` prints
+npm run dev                 # http://localhost:3000
 ```
 
-Other scripts: `npm run build`, `npm start`, `npm run typecheck`.
+Other scripts: `npm run build`, `npm start`, `npm run typecheck`, `npm run lint`.
+`node scripts/verify.mjs` drives the running app end to end in a real browser.
 
 ## Languages
 
-Five locales, each a full translation — not machine-filled stubs:
+Five locales, each fully translated rather than machine-stubbed:
 
 | Code | Language |
 | ---- | -------- |
@@ -27,71 +36,65 @@ Five locales, each a full translation — not machine-filled stubs:
 | `ha` | Hausa |
 | `fr` | Français |
 
-Every route is locale-prefixed (`/yo/shop`, `/ha/product/nokia-150-4g`). A
-visitor landing on `/` is redirected by `src/proxy.ts`, which prefers the
-`emmason_locale` cookie set by the language switcher and otherwise negotiates
-from `Accept-Language`. Switching language keeps you on the same page.
+Every route is locale-prefixed (`/yo/shop`, `/ha/product/nokia-105-dual-sim`).
+`/` redirects via `src/proxy.ts`, which prefers the `emmason_locale` cookie set
+by the switcher and otherwise negotiates from `Accept-Language`. Switching
+language keeps you on the same page.
 
 English is the source of truth: `src/lib/i18n/dictionaries/en.ts` defines the
-`Dictionary` type, and the other four are typed against it — a missing or
-misspelled key fails `npm run typecheck` rather than rendering blank.
+`Dictionary` type and the other four are typed against it, so a missing key
+fails `npm run typecheck` rather than rendering blank.
 
-Counts use `pluralize()` (one/other), which is enough for English and French;
-Yoruba, Igbo and Hausa do not inflect these nouns.
+> The Yorùbá, Igbo and Hausa copy was written without a native speaker in the
+> loop. Have one review it before launch.
 
 ## What works
 
-**Shopping** — category browsing, search, filters (category, condition, price)
-and sorting, all held in the URL so a filtered listing is shareable. Product
-pages carry specs, warranty, seller attribution and Product JSON-LD.
+**Shopping** — 16 categories, search, filters and sort held in the URL so a
+filtered listing is shareable. Product pages carry specs, warranty, condition
+(new / UK-used / refurbished), seller attribution and Product JSON-LD.
 
-**Cart & checkout** — cart persists in `localStorage`. Checkout collects contact
-details, offers **store pickup** (free) or **nationwide delivery** (₦3,500 flat,
-free over ₦150,000), and three payment methods. Validation covers Nigerian phone
-formats and email, with errors announced via `aria-invalid` / `aria-describedby`.
+**Cart and checkout** — the cart persists in `localStorage` and holds product
+ids only, never prices. Checkout offers **store pickup** (free) or **nationwide
+delivery** priced per state, with free delivery over a configurable threshold.
+Pay by card through Paystack, or by transfer / on delivery with the order handed
+to WhatsApp pre-filled.
 
-**Marketplace** — seller landing page, and a registration form capturing business
-details, category coverage and **NIN** for identity verification. The NIN is
-validated as 11 digits and masked (`••••••••901`) the moment it leaves the form;
-it is never rendered in full or written to a log. Applications are gated on admin
-approval before a seller can list.
+**Marketplace** — sellers apply, Emmason approves from `/admin/applications`,
+and approval creates the seller record. NIN is validated as 11 digits and stored
+**masked only** (`••••••••901`); the full number is never persisted.
 
-## Data layer
+**Admin** — `/admin`, gated by Supabase auth plus an `admins` roster row.
+Revenue and low-stock overview, orders with status transitions, product CRUD
+with inline stock editing, and the application queue.
 
-There is no database yet. The catalogue is seeded in `src/lib/data/` and read
-through a single function, `queryProducts()` in `src/lib/data/index.ts`. That is
-the intended swap point: replacing the seed arrays with real queries there leaves
-every page unchanged.
+## How the money works
 
-Three places currently stop short of a backend, each marked with a comment:
+Every amount is stored as an **integer number of kobo** (₦1 = 100 kobo) and
+converted to whole Naira only for display, in one place. No arithmetic touches
+a float, so totals cannot drift. Paystack also denominates NGN in kobo, so
+amounts pass to it unconverted.
 
-- **Checkout** derives an order reference locally instead of POSTing an order.
-- **Seller registration** confirms locally instead of persisting an application.
-- **Newsletter** confirms locally instead of calling a mailing-list provider.
+## Data
 
-Product imagery is also seeded: `ProductImage` renders a branded gradient tile
-per category rather than a broken `<img>`. Swap it for `next/image` when real
+Postgres, via Supabase. `supabase/migrations/` holds the schema, RLS policies,
+explicit grants and the order functions; `supabase/seed.sql` and
+`supabase/seed_i18n.sql` hold the sample catalogue — 16 categories, 64 products,
+5 sellers, 37 delivery zones.
+
+The whole storefront reads through one module, `src/lib/data/index.ts`.
+
+Product imagery is still generated: `ProductImage` draws a branded gradient tile
+per category rather than a broken `<img>`. Swap it for `next/image` once real
 photography exists.
 
-## Layout
+## Environment
 
-```
-src/
-  app/[locale]/        routes — home, shop, category, product, cart, checkout,
-                       deals, sell, sell/register, seller, about, contact, policies
-  components/          header, footer, cart, checkout, filters, product cards, icons
-  lib/
-    i18n/              locale config, dictionaries, interpolate/pluralize helpers
-    data/              seeded catalogue, sellers, categories, query layer
-    nigeria.ts         states list, phone/email/NIN validation, NIN masking
-    format.ts          Naira formatting, discounts, order references
-    site.ts            business address, phone numbers, socials, delivery pricing
-  proxy.ts             locale negotiation and redirect
-```
+See `.env.example`. The ones that matter in production:
 
-## Notes
-
-- Prices are whole Naira integers; `formatPrice()` handles display per locale.
-- The design tokens (brand greens, the red sale flash) live in
-  `src/app/globals.css` under `@theme`, sampled from the shop's print artwork.
-- `prefers-reduced-motion` is respected globally.
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | Builds the Paystack callback URL |
+| `NEXT_PUBLIC_WHATSAPP_NUMBER` | Digits only, e.g. `2349065755314` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server only. Bypasses RLS |
+| `PAYSTACK_SECRET_KEY` | Server only. Also verifies webhook signatures |

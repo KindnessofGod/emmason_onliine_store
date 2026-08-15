@@ -2,343 +2,265 @@
 
 **Last updated:** 2026-08-15
 **Repo:** `KindnessofGod/emmason_onliine_store`
-**Working branch:** `claude/multilingual-electronics-marketplace-kj0jl0`
-**HEAD:** `012d2a5` — "Build multilingual electronics marketplace storefront"
-**Status:** pushed, working tree clean, build green, no open PR
+**Working branch:** `claude/online-store-capabilities-1akdt9`
+**Status:** pushed, working tree clean, build green, typecheck and lint clean
 
-Read this file top to bottom before touching code. Sections 1–2 are the goal and
-the decisions already made; section 6 is the backlog.
+This supersedes the earlier handoff written on
+`claude/multilingual-electronics-marketplace-kj0jl0`. That branch's work is
+**merged in**, not abandoned — both histories are in this branch.
+
+Read sections 1–3 before touching code. Section 7 is the backlog.
 
 ---
 
-## 1. What we are building and why
+## 1. What this is
 
 An online store **and** multi-seller marketplace for **Emmason Mobile Phones,
 Tech & Gadgets** — a real shop at No 24 Day Star Plaza, opposite St. Peter's
-Anglican Church, Owerri, Imo State.
-
-The business sells consumer electronics: phones (new and UK/London-used),
-headphones and audio, rechargeable and solar fans, power banks and inverters,
-ring lights and content-creation gear, smart watches, accessories, home tech.
-Phone numbers 0906 5755 314 and 0803 863 0197; TikTok `@emmasongadgets`;
-Facebook "emmason Mobile Phones Tech & Gadgets".
+Anglican Church, Owerri, Imo State. Phones 0906 5755 314 and 0803 863 0197;
+TikTok `@emmasongadgets`.
 
 Two things make it more than a plain storefront:
 
-1. **It must speak several Nigerian languages**, not just English. The brand's
-   own flyers already mix English, Pidgin ("No Wahala", "emmason dey for you")
-   and Igbo ("Ndeewo nu anyi emeghegoo").
-2. **It is a marketplace, not just Emmason's own catalogue.** Third-party sellers
-   register, get verified, and list alongside the house stock. Customers can also
-   buy directly from Emmason.
+1. **It speaks five languages** — English, Yorùbá, Igbo, Hausa, French.
+2. **It is a marketplace.** Third-party sellers apply, get approved, and list
+   alongside Emmason's own stock.
 
-Delivery is nationwide, and customers can alternatively walk in and collect.
+Customers pay by card (Paystack), bank transfer, or on delivery, and can
+either collect from the shop or have it delivered nationwide.
 
-### The brief came in by voice and was partly garbled
+## 2. Requirements that are settled — do not relitigate
 
-The original request was a voice transcript with significant transcription
-damage. Do not treat the raw wording as precise. The parts that were legible:
-consumer electronics, several categories, multiple languages (English, Yoruba,
-Igbo, plus one that transcribed as "fresh"), something about linking **NIN**,
-sellers contacting the business, pickup, direct consumer purchase, and "it has to
-have really good UI".
+These came from the user directly and are binding:
 
-Ambiguities were resolved by asking the user directly. **Their answers are
-binding requirements — do not relitigate them:**
-
-| Question asked | User's answer |
+| Question | Answer |
 | --- | --- |
-| Which languages? | "Hausa and french" — i.e. English + Yoruba + Igbo + **Hausa** + **French** (5 total) |
+| Languages | English + Yorùbá + Igbo + **Hausa** + **French** (5) |
 | Single store or marketplace? | **Marketplace with seller onboarding** |
-| Verification / fulfilment? | **Store pickup + nationwide delivery** (see NIN note below) |
-| Backend? | **Next.js + local seeded data first**, not Supabase yet |
+| Fulfilment | **Store pickup + nationwide delivery** |
+| Payments | **Paystack**, plus a WhatsApp ordering option |
+| Market / currency | **Nigeria only, ₦ (NGN)** |
+| Categories | The user's own handwritten list of **16** (see `supabase/seed.sql`) |
+| Product data | Sample data for now; real photos to come |
 
-### ⚠️ The one open judgement call: NIN
+### Still open — needs the user
 
-The verification question was multi-select with three options. The user ticked
-**only** "Store pickup + nationwide delivery". They did **not** tick "NIN
-verification for sellers" or "Seller-to-business contact channel".
+1. **NIN.** Seller registration captures it. The user mentioned NIN in their
+   original voice brief but did *not* tick it when asked. It was built anyway
+   and flagged; **they have still not answered.** It is now stored **masked
+   only** (`••••••••901`) — the full 11 digits are validated in the form and
+   never persisted, which lowers the stakes considerably. If they want it gone:
+   `src/lib/nigeria.ts` (`isValidNin`, `maskNin`), the NIN block in
+   `src/components/seller-registration-form.tsx`, the `nin`/`ninHelp`/
+   `invalidNin` dictionary keys, and the `nin_masked` column.
+2. **Product photography.** Still the single biggest visible gap.
+3. **Seller dashboard scope** — is it "sellers log in and manage their own
+   listings", or "they apply, Emmason lists it for them"? Changes the next
+   phase enormously.
+4. **Nigerian Pidgin** as a sixth locale — offered once, never answered.
+5. **Translation review.** The Yorùbá, Igbo and Hausa strings were written
+   without a native speaker. They are good-faith, not verified. Get a speaker
+   to read them before launch.
 
-However, NIN was explicitly mentioned in their original voice message. So NIN
-capture **was built anyway**, and this was flagged to the user in plain terms:
-*"One thing I'm keeping that you didn't tick: you mentioned NIN in your original
-message, so I'm including NIN capture in seller registration (masked,
-admin-review gated). Easy to remove if you'd rather not."*
-
-**The user has not yet responded to that flag.** Confirm with them before
-building anything further on top of NIN. If they say drop it, the removal is
-contained: `src/lib/nigeria.ts` (`isValidNin`, `maskNin`), the NIN section of
-`src/components/seller-registration-form.tsx`, and the `nin` / `ninHelp` /
-`invalidNin` keys in all five dictionaries.
-
-The **seller-to-business contact channel was not built at all** — it was offered,
-not selected. It is in the backlog as an open question, not as agreed work.
-
----
-
-## 2. Decisions already made (don't re-derive these)
-
-- **Next.js 16 App Router + React 19 + TypeScript + Tailwind CSS v4.** No UI
-  component library — everything is hand-built, so there is no third-party
-  design system to fight.
-- **Next was upgraded off 15.5.4**, which shipped with CVE-2025-66478. React,
-  postcss and tailwind were bumped alongside. `npm audit` reports **0
-  vulnerabilities** — keep it that way.
-- **`src/middleware.ts` was renamed to `src/proxy.ts`** and the export renamed
-  `middleware` → `proxy`. This is Next 16's convention; the old name warns.
-- **The root layout lives at `src/app/[locale]/layout.tsx`.** There is
-  deliberately **no `src/app/layout.tsx`** — this is the documented Next i18n
-  pattern and is what lets `<html lang>` be set per locale. Adding one will break
-  routing.
-- **English is the source of truth for translations.** `dictionaries/en.ts`
-  exports the `Dictionary` type via a `Widen<>` helper; the other four are typed
-  `const xx: Dictionary = {...}`. A missing or misspelled key is a **typecheck
-  failure**, not a blank render. Preserve this property when adding keys — add to
-  `en.ts` first, then all four others.
-- **Prices are whole Naira integers**, not kobo, not floats. `formatPrice()`
-  renders them.
-- **Filters and sort live in the URL**, not component state, so a filtered
-  listing is shareable and survives refresh.
-- **Product names are not translated** ("Nokia 150 4G" reads the same
-  everywhere). Descriptions, category names, spec labels and all UI chrome are.
-- **Spec labels are shared** in `src/lib/data/spec-labels.ts` rather than
-  re-translated inline per product — this keeps the translation surface small.
-
----
-
-## 3. Where things stand
-
-### Getting running
-
-```bash
-npm install
-npm run dev        # http://localhost:3000
-npm run build      # production build
-npm run typecheck  # tsc --noEmit
-```
-
-Verified green at handoff: `npm run typecheck` clean, `npm run build` compiles
-and prerenders **237 static pages** (100 product pages = 20 products × 5 locales,
-plus categories, sellers, and static routes across all locales).
-
-### Branches
-
-| Branch | Purpose | State |
-| --- | --- | --- |
-| `main` | default branch | 1 commit behind our work; untouched |
-| `claude/multilingual-electronics-marketplace-kj0jl0` | **the working branch** | pushed, = `origin/...`, clean |
-
-All work goes on `claude/multilingual-electronics-marketplace-kj0jl0`. Push with
-`git push -u origin claude/multilingual-electronics-marketplace-kj0jl0`.
-**No pull request has been opened** — the user has not asked for one.
-
----
-
-## 4. What is built
-
-### Routes (all under `/[locale]/`, 5 locales each)
-
-| Route | What it does |
-| --- | --- |
-| `/` | Hero, trust bar, 8 category tiles, on-sale grid, walk-in store panel, new arrivals, verified sellers, sell CTA |
-| `/shop` | Full catalogue with filters + sort + search |
-| `/category/[slug]` | Category landing with gradient header, filters locked to that category |
-| `/product/[slug]` | Gallery, price/discount, seller attribution, buy box, specs table, delivery/pickup cards, related products, Product JSON-LD |
-| `/cart` | Line items, quantity steppers, subtotal, delivery, free-delivery nudge |
-| `/checkout` | Contact, pickup-vs-delivery, address, 3 payment methods, order summary, confirmation |
-| `/deals` | Everything discounted, sorted by discount depth |
-| `/sell` | Seller landing — benefits, 3-step how-it-works, verified seller list |
-| `/sell/register` | Seller application form (business details, NIN, categories, terms) |
-| `/seller/[slug]` | Public seller shop page with their listings |
-| `/about`, `/contact` | Business info, address, phones, socials |
-| `/delivery`, `/returns`, `/faq`, `/privacy`, `/terms` | Policy pages (real translated copy, FAQ has FAQPage JSON-LD) |
-| `not-found` | 404 |
-
-### Internationalisation
-
-Five locales: `en`, `yo` (Yorùbá), `ig` (Igbo), `ha` (Hausa), `fr` (Français).
-
-- Every route is locale-prefixed. `/` redirects via `src/proxy.ts`, which prefers
-  the `emmason_locale` cookie (set by the switcher, 1 year) and otherwise
-  negotiates from `Accept-Language` with q-value ranking.
-- The language switcher swaps only the locale segment, so you stay on the same
-  page. **Verified in a browser:** `/en/shop` → `/ha/shop`.
-- ~242 message keys per locale, fully translated (not stubs). Yoruba and Igbo
-  diacritics render correctly — confirmed by screenshot.
-- `interpolate()` fills `{name}` placeholders. `pluralize()` picks one/other
-  forms — enough for English and French; Yoruba, Igbo and Hausa don't inflect
-  these nouns.
-
-### Seeded data
-
-**20 products, 8 categories, 5 sellers** in `src/lib/data/`. Categories: phones,
-audio, fans, power, content-creation, wearables, accessories, home-tech. Sellers
-include Emmason itself (`isHouse: true`) plus 4 third parties, one deliberately
-unverified so the pending state is exercisable.
-
-### Commerce behaviour
-
-- Cart persists to `localStorage` (`emmason_cart_v1`), with a `ready` flag so SSR
-  and first client render agree and the badge doesn't flash a wrong count.
-- Delivery: **₦3,500 flat, free over ₦150,000**; store pickup always free.
-  Configured in `src/lib/site.ts`.
-- Validation: Nigerian phone formats (`0803…`, `+234…`, `234…`), email, and NIN
-  (exactly 11 digits). Errors wire `aria-invalid` + `aria-describedby`, and
-  submitting an invalid form moves focus to the first failing field.
-
-### Verified by driving a real browser
-
-Not just built — actually exercised end to end with Playwright:
-
-- Product → add to cart → cart → checkout → place order. Confirmation renders,
-  cart clears afterwards.
-- Empty-form submit on both checkout and seller registration raises the right
-  errors.
-- Seller registration completes and shows the NIN masked as `••••••••901`.
-- Singular/plural: a one-result category shows "1 product", not "1 products".
-- Language switch preserves the page.
-- Zero uncaught page errors across all of it.
-
-### Three real bugs were found this way and fixed
-
-1. **Order confirmation rendered off-screen.** The checkout form is taller than
-   the viewport, so after submit the confirmation appeared above the retained
-   scroll position and looked like a blank page. Fixed with a `scrollTo` effect
-   in both `checkout-form.tsx` and `seller-registration-form.tsx`.
-2. **"1 items".** Added `itemsOne` / `resultsCountOne` / `productCountOne` keys
-   across all five dictionaries and a `pluralize()` helper.
-3. **Insufficient contrast** of white text on the lighter category-tile
-   gradients. Darkened the gradient stops and added a bottom scrim.
-
----
-
-## 5. Architecture — the parts that matter
+## 3. Architecture — the parts that matter
 
 ```
 src/
-  app/[locale]/        all routes; ROOT LAYOUT LIVES HERE (no src/app/layout.tsx)
-  app/globals.css      @theme design tokens: brand greens, flash red, ink greys
-  app/icon.svg         favicon
-  components/          header, footer, cart, checkout, filters, cards, icons
+  app/
+    (shop)/[locale]/   customer pages. THE SHOP'S ROOT LAYOUT LIVES HERE
+    (admin)/           staff area, its own root layout, English only
+    api/paystack/      webhook receiver
+  actions/             server actions: checkout, seller application, admin
+  components/          UI; admin components under components/admin
   lib/
-    i18n/config.ts     locale list, metadata for the switcher
-    i18n/dictionaries/ en.ts is the source of truth; yo/ig/ha/fr typed against it
-    i18n/index.ts      getDictionary, interpolate, pluralize, href
-    data/index.ts      >>> queryProducts() — THE DATABASE SWAP POINT <<<
-    data/products.ts   20 seeded products
-    data/categories.ts 8 categories with per-locale names + gradients
-    data/sellers.ts    5 sellers
-    data/spec-labels.ts shared translated spec labels
-    nigeria.ts         36 states + FCT, phone/email/NIN validation, NIN masking
-    format.ts          Naira formatting, discount %, order references
-    site.ts            address, phones, socials, delivery pricing
-    types.ts           Product, Seller, Category, LocalizedText, etc.
-  proxy.ts             locale negotiation + redirect (Next 16 name for middleware)
+    data/index.ts      >>> the only read path for the catalogue <<<
+    i18n/              en.ts is the source of truth; yo/ig/ha/fr typed against it
+    db-types.ts        raw table shapes (kobo, jsonb)
+    types.ts           domain shapes the UI renders (whole Naira, localised)
+    orders.ts          order reads/writes
+    paystack.ts        initialise, verify, webhook signature
+    category-style.ts  glyph + gradient per category (presentation, not data)
+  proxy.ts             locale negotiation AND admin session refresh
+supabase/
+  migrations/          schema, RLS, grants, order functions
+  seed.sql             16 categories, 64 products, 37 delivery zones
+  seed_i18n.sql        five-language copy, sellers, marketplace back-fill
+scripts/verify.mjs     end-to-end browser check (see section 6)
 ```
 
-**The single most important file for the next phase is
-`src/lib/data/index.ts`.** Every page reads products through `queryProducts()`.
-Replacing the seed arrays with real database queries inside that one function
-leaves every page component untouched. That was the whole point of the structure.
+**There is deliberately no `src/app/layout.tsx`.** The shop's root layout is
+`(shop)/[locale]/layout.tsx` so `<html lang>` follows the locale; admin has its
+own at `(admin)/layout.tsx`. This is Next's multiple-root-layouts pattern.
+Adding `src/app/layout.tsx` would nest two `<html>` tags and break routing.
 
-### Where the backend is missing (each marked with a code comment)
+**`src/middleware.ts` does not exist either.** Next 16 calls it `proxy.ts`, and
+both locale negotiation and the admin auth gate live in that one file.
 
-| Flow | Current behaviour | File |
-| --- | --- | --- |
-| Place order | Derives a reference locally, clears cart. **Nothing is persisted or sent.** | `components/checkout-form.tsx` |
-| Seller application | Confirms locally with a reference. **Nothing is persisted.** | `components/seller-registration-form.tsx` |
-| Newsletter | Confirms locally. No provider call. | `components/newsletter-form.tsx` |
+### Money
 
-### Product imagery does not exist
+Stored as **integer kobo** everywhere in the database — that is what Paystack
+expects and it means totals cannot drift. The UI works in **whole Naira**.
+`toNaira()` in `src/lib/data/index.ts` is the only conversion point.
 
-There is no photography. `components/product-image.tsx` renders a deterministic
-branded tile per category — category gradient, category emoji, and the wave motif
-from Emmason's flyers. It looks intentional rather than broken, but **it is the
-most visible gap in the product.** Replace with `next/image` when real shots
-exist. This is a content problem more than a code problem: ask the user for
-photos.
+### The catalogue read path
 
----
+Every page reads through `src/lib/data/index.ts`. Filtering, sorting and search
+run in Postgres, not JavaScript. It uses a **cookieless** Supabase client
+(`createSupabaseCatalogClient`) because `generateStaticParams` runs at build
+time with no request in scope — a cookie-bound client throws there.
 
-## 6. What is NOT done — backlog, roughly prioritised
+### How an order is placed
 
-### Blocking a real launch
+The browser's cart holds **product ids and quantities only, never prices**.
+`place_order()` (migration 0006) then, in one transaction:
 
-1. **Real photography.** Biggest visible gap. Needs the user to supply images.
-2. **A database.** User chose seeded-data-first deliberately, so this is the
-   agreed next step, not a defect. Supabase MCP tools are available in this
-   environment. Swap inside `queryProducts()`.
-3. **Order persistence + notification.** Orders currently evaporate. Emmason
-   needs to actually receive them — email, WhatsApp, or a dashboard.
-4. **Seller application persistence + an admin review queue.** Applications
-   evaporate too. There is no way for Emmason to see or approve anyone.
-5. **Payments.** Card payment is an option in the UI with no processor behind it.
-   Paystack or Flutterwave is the norm in Nigeria. Pay-on-delivery and bank
-   transfer work as-is because they are manual by nature.
+1. validates the destination if it is a delivery,
+2. locks each product with `SELECT … FOR UPDATE`,
+3. reads the real price and checks stock,
+4. writes the order and line items with prices snapshotted,
+5. decrements stock,
+6. **then** resolves the delivery fee — because whether delivery is free
+   depends on the subtotal it just computed.
 
-### Significant missing features
+So a tampered cart cannot change what a customer is charged, and two shoppers
+racing for the last unit cannot both win it. `cancel_order()` returns reserved
+stock and is guarded against repeat cancellation inflating inventory.
 
-6. **Seller dashboard.** Registration ends at "pending approval" with nothing
-   behind it. A verified seller currently cannot log in, add a product, edit
-   prices, or see orders. This is the largest missing slice of the marketplace
-   promise, and the user's original message did mention "seller maintenance".
-7. **Authentication.** No accounts for customers, sellers, or admin. Needed
-   before 6 can exist.
-8. **Seller-to-business contact channel.** Offered to the user, not selected, so
-   not built. Confirm whether they want it — the original voice message hinted at
-   it ("sellers contact business").
-9. **Real reviews.** Ratings and review counts are seeded numbers. There is no
-   way to leave a review.
-10. **Order tracking.** Customer gets a reference number that leads nowhere.
+### Payment confirmation
+
+An order is marked paid only on evidence from Paystack, never on a redirect:
+the webhook verifies the `x-paystack-signature` HMAC in constant time, then
+independently calls Paystack's verify endpoint, and refuses underpayments. The
+return page verifies too, as a fallback. Marking paid is idempotent, so both
+paths can race safely.
+
+Point the Paystack dashboard webhook at `https://your-domain/api/paystack/webhook`.
+
+### Security posture
+
+RLS denies by default. The anon key reads the live catalogue and nothing else —
+it cannot read a single order or application. Every write goes through
+server-side code holding the service role key. `0004_grants.sql` states table
+privileges explicitly rather than relying on Supabase's implicit defaults, so
+the schema behaves identically hosted, local and in CI.
+
+## 4. Running it
+
+Node 20+ and Docker.
+
+```bash
+npm install
+npx supabase start          # Postgres + PostgREST + Auth in Docker
+cp .env.example .env.local  # fill in from what `supabase start` prints
+npm run dev
+```
+
+In a restricted environment some optional containers fail; only the core are
+needed:
+
+```bash
+npx supabase start -x edge-runtime,studio,imgproxy,inbucket,realtime,storage-api,supavisor,vector
+```
+
+### First admin
+
+Admin access is a row in `public.admins`. Nothing in the UI grants it.
+
+```bash
+curl -X POST "$SUPABASE_URL/auth/v1/admin/users" \
+  -H "apikey: $SERVICE_ROLE_KEY" -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","password":"…","email_confirm":true}'
+```
+
+then `insert into public.admins (user_id, email) values ('<id>', 'you@example.com');`
+and sign in at `/admin/login`.
+
+## 5. What is built
+
+**Shop** (all under `/[locale]/`, 5 locales): home, shop with URL-held filters
+and sort, category, product (specs, warranty, seller attribution, JSON-LD),
+cart, checkout, deals, sell landing, seller registration, public seller pages,
+about, contact, and the policy pages.
+
+**Checkout** collects contact details, pickup-vs-delivery, and payment method.
+Card goes to Paystack; transfer and pay-on-delivery record the order and open a
+WhatsApp thread pre-filled with everything Emmason needs.
+
+**Admin** (`/admin`): overview with revenue and low stock, order list and detail
+with status transitions, product CRUD with inline stock editing, and a seller
+application queue where approving an application **creates the seller**.
+
+## 6. Verified by driving a real browser
+
+`node scripts/verify.mjs` (dev server running) exercises: all five locales and
+their `<html lang>`, the catalogue coming from Postgres, language switching
+preserving the page, a real order through checkout, seller registration, and
+admin sign-in through to the application queue. It reports any console or page
+error. Last run: **zero errors**, order `EMM-BBBCB1`, application `SEL-32FAE2`.
+
+Chromium is pre-installed. Launch with
+`executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"`.
+Do **not** run `playwright install`.
+
+### Bugs found this way, not by inspection
+
+- `place_order()` called `gen_random_bytes()` from pgcrypto, which Supabase
+  installs into the `extensions` schema — invisible to the function's pinned
+  `search_path`. Every checkout failed. Now built on core `gen_random_uuid()`.
+- RLS policies were unreachable because the tables had no `GRANT`s. Hosted
+  Supabase's broad defaults masked it; a fresh database 500'd on every page.
+- The seed's seller distribution used `LIKE '%-00[23]'`. `[23]` is not a LIKE
+  wildcard, so all 64 products landed on the house account and every
+  third-party seller showed zero listings.
+
+## 7. Backlog
+
+### Blocking launch
+
+1. **Real photography.** `ProductImage` draws a branded gradient tile per
+   category so nothing looks broken, but this is a content problem — ask the
+   user for images.
+2. **A hosted Supabase project.** Blocked: the account is at its free-tier
+   limit of 2 active projects. The user must pause one or upgrade.
+3. **Paystack keys.** The integration is complete but has never run against
+   the live API. WhatsApp ordering works without them.
+4. **Deploy.** Vercel MCP tools are available; blocked on item 2.
+
+### Significant
+
+5. **Seller dashboard.** Approved sellers still cannot log in, add a product or
+   see their orders. Largest missing slice of the marketplace promise, and it
+   needs customer/seller authentication first.
+6. **Order notifications.** Orders persist and appear in admin, but nothing
+   emails or messages Emmason when one lands.
+7. **Product descriptions are English-only.** `description_i18n` holds `{en}`
+   and the data layer falls back to English for other locales. Category names,
+   taglines and all UI chrome *are* fully translated.
+8. **Real reviews.** Ratings and counts are seeded numbers; there is no way to
+   leave one.
+9. **Order tracking for customers.** The reference is shown but there is no
+   public lookup page any more (the single-store branch had one; it did not
+   survive the merge into the locale-prefixed routing).
 
 ### Polish
 
-11. **Search is a naive substring match** over name, brand, category and
-    description. Fine at 20 products; will need real indexing later.
-12. **Stock is not decremented** on order — nothing is transactional yet.
-13. **No tests.** Verification so far has been Playwright scripts run ad hoc from
-    the scratchpad, not a committed suite. Worth committing a real Playwright
-    setup.
-14. **Nigerian Pidgin was offered as a locale and not selected.** The brand's own
-    flyers speak Pidgin, so it may still be worth raising again.
-15. **Product gallery is fake** — the four thumbnails on the product page are the
-    same generated tile. Becomes real once photography lands.
+10. Search is `ilike` across name, brand and description — fine at 64 products,
+    wants a real index later.
+11. `scripts/verify.mjs` is a script, not a test suite. Worth promoting to
+    Playwright proper with assertions rather than console output.
+12. The product gallery shows the same generated tile four times; becomes real
+    with photography.
+13. `lucide-react` is a dependency used **only** by the admin panel — the shop
+    hand-builds its icons in `src/components/icons.tsx`.
 
----
+## 8. Environment gotchas
 
-## 7. Environment gotchas (these cost time — don't rediscover them)
-
-- **Never run `pkill -f "next start"`.** The pattern matches the bash command's
-  own command line and kills your shell mid-command. Use
-  `kill $(lsof -ti:PORT)`, or just start on a different port.
-- **Port 3000 had a phantom listener** that `lsof` could not see: `next start`
-  logged `EADDRINUSE` and exited, yet `curl` still returned 200 from a stale
-  process. Ports 3100 and 3200 were used instead. If 3000 behaves oddly, move
-  ports rather than debugging it.
-- **Rebuilding while a server is running serves stale chunks.** The browser shows
-  "This page couldn't load" on client-side navigation while `curl` returns 200 —
-  because the chunk hashes changed under the running server. Always restart the
-  server after `next build`. This looked exactly like an app bug and was not one.
-- **Playwright:** Chromium is pre-installed at `/opt/pw-browsers/chromium`. Launch
-  with `chromium.launch({ executablePath: "/opt/pw-browsers/chromium" })`. Do
-  **not** run `playwright install`.
-- **Google Fonts is reachable** through the proxy — `Plus_Jakarta_Sans` via
-  `next/font/google` resolves at build time.
-- Verification scripts from this session live in the session scratchpad and are
-  **not committed**. They will be gone in a new session; rewrite as needed, or
-  better, commit a proper Playwright suite (backlog item 13).
-
----
-
-## 8. Open questions for the user
-
-1. **NIN** — keep it, or remove it? Flagged, not yet answered. See section 1.
-2. **Product photography** — can they supply images? This gates the biggest
-   visible improvement.
-3. **Seller dashboard** — is a full seller portal in scope, or is
-   "apply, we approve, we list it for you" the actual operating model? This
-   changes the size of the next phase enormously.
-4. **Payment processor** — Paystack, Flutterwave, or manual transfer only?
-5. **Nigerian Pidgin** as a sixth locale?
-6. **Domain and hosting** — Vercel MCP tools are available in this environment if
-   they want it deployed.
+- **Never `pkill -f "next dev"`** — the pattern matches the bash command's own
+  command line and kills the shell mid-command. Use `kill $(lsof -ti:3000)`.
+- **Restart the server after `next build`.** Rebuilding under a running server
+  serves stale chunks; the browser shows a load failure while `curl` returns
+  200. Looks exactly like an app bug and is not one.
+- The Supabase CLI's `pg-delta` step fails behind the agent proxy (TLS). It is
+  a warning, not fatal — migrations and seeds still apply.
+- Google Fonts resolves through the proxy; `Plus_Jakarta_Sans` works at build.

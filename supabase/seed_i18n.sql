@@ -123,11 +123,11 @@ from public.sellers s
 where p.seller_id is null
   and s.slug = case
     when p.category_id in (select id from public.categories where slug in ('bluetooth-speakers','earbuds','headsets'))
-         and p.sku like '%-00[23]' then 'brightway-gadgets'
+         and p.sku ~ '-00[23]$' then 'brightway-gadgets'
     when p.category_id in (select id from public.categories where slug in ('cameras','tripods','microphones'))
-         and p.sku like '%-00[23]' then 'zenith-tech-hub'
+         and p.sku ~ '-00[23]$' then 'zenith-tech-hub'
     when p.category_id in (select id from public.categories where slug in ('home-appliances','fans'))
-         and p.sku like '%-00[23]' then 'kelechi-electronics'
+         and p.sku ~ '-00[23]$' then 'kelechi-electronics'
     else 'emmason'
   end;
 
@@ -138,7 +138,7 @@ set condition = 'uk-used'
 from public.categories c
 where p.category_id = c.id
   and c.slug in ('button-phones', 'kids-tablets')
-  and p.sku like '%-004';
+  and p.sku ~ '-004$';
 
 -- Seeded social proof so the rating UI is exercisable. Deterministic.
 update public.products
