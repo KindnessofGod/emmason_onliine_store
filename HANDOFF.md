@@ -136,6 +136,26 @@ paths can race safely.
 
 Point the Paystack dashboard webhook at `https://your-domain/api/paystack/webhook`.
 
+### Selling without dark patterns
+
+The persuasion on this site is deliberately all real, and that is a design
+constraint rather than an oversight:
+
+- Low-stock warnings read the actual `stock` column.
+- The free-delivery progress bar measures the real subtotal against the real
+  threshold in `store_settings`.
+- A struck-through "was" price appears only where `compare_at_price_kobo` holds
+  a genuinely higher former price. **Never populate that column to manufacture a
+  discount** — under the FCCPA a false reference price is a misleading trade
+  practice, and Emmason is a physical shop in Owerri whose customers come back.
+- There are no countdown timers, no "N people are viewing this", no fabricated
+  reviews. `rating` and `review_count` are still seeded numbers and must be
+  replaced with real review data or removed before launch (backlog item 8).
+
+What does the conversion work instead: a bottom-docked buy bar on phones, a
+WhatsApp enquiry route on every product, the naira saving stated next to the
+percentage, and the fewest possible fields at checkout.
+
 ### Security posture
 
 RLS denies by default. The anon key reads the live catalogue and nothing else —
@@ -143,6 +163,28 @@ it cannot read a single order or application. Every write goes through
 server-side code holding the service role key. `0004_grants.sql` states table
 privileges explicitly rather than relying on Supabase's implicit defaults, so
 the schema behaves identically hosted, local and in CI.
+
+On top of that, in `next.config.ts` and `src/lib/rate-limit.ts`:
+
+- **CSP** with `frame-ancestors 'none'`, `object-src 'none'`, `form-action
+  'self'`, and an allow-list of exactly our Supabase project and Paystack.
+  `script-src` keeps `'unsafe-inline'` on purpose — nearly every page is
+  statically prerendered and a nonce cannot be minted for a static page, so
+  adopting nonces would force per-request rendering of 500+ product pages. The
+  policy still stops any script from an unlisted origin, framing, and form
+  hijacking.
+- **HSTS** (2 years, preload), `nosniff`, `X-Frame-Options: DENY`, a
+  `strict-origin-when-cross-origin` referrer policy, and camera/mic/geolocation
+  denied.
+- **`/admin/*` is `no-store`** so no shared cache ever holds customer data.
+- **`images.remotePatterns` is pinned to the Supabase host.** It was `**`,
+  which turns Next's image optimiser into an open proxy anyone can point at any
+  URL on Emmason's bandwidth.
+- **Rate limits** on the two unauthenticated writes: checkout (10 per 10
+  minutes) and seller applications (5 per hour). Fixed-window and in-process,
+  so on serverless each instance counts separately — this stops casual abuse
+  and retry storms, not a funded attacker. Oversell is prevented in Postgres
+  regardless, by the row locks in `place_order()`.
 
 ## 4. Running it
 
@@ -199,6 +241,23 @@ preserving the page, a real order through checkout, seller registration, and
 admin sign-in through to the application queue. It reports any console or page
 error. Last run: **zero errors**, order `EMM-BBBCB1`, application `SEL-32FAE2`.
 
+`node scripts/mobile-audit.mjs` is the second harness. It drives the storefront
+at 360, 390 and 414px and reports horizontal overflow, tap targets under 44px
+and body text under 12px. Last run: **no horizontal overflow and no console
+errors at any width.** The tap targets it still lists are inline links inside
+prose — breadcrumbs, footer legal links, product-card titles under a fully
+clickable card — which WCAG 2.5.8 exempts. Every real control (menu, cart,
+language, add-to-cart, footer nav, social icons) is at least 44px.
+
+Two mobile bugs it caught that no amount of desktop review would have:
+
+- The header overflowed **every** page from 360 to 414px, because the logo's
+  "Mobile Phone & Tech Gadget" descriptor kept it 205px wide.
+- The product page scrolled sideways to 477px. A grid item defaults to
+  `min-width: auto`, so the long legal business name in the seller card widened
+  the entire single mobile column. `min-w-0` on both columns is the fix, and the
+  same trap was live on the contact page.
+
 Chromium is pre-installed. Launch with
 `executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"`.
 Do **not** run `playwright install`.
@@ -242,8 +301,21 @@ ever talks to localhost.
 3. **Paystack keys.** The integration is complete but has never run against
    the live API. WhatsApp ordering works without them, and card payment stays
    hidden until `PAYSTACK_SECRET_KEY` is set.
-4. **Deploy.** Vercel MCP tools are available. Unblocked — not yet done,
-   because publishing the store is the user's call.
+4. **Deploy.** Vercel project `emmason-store`
+   (`prj_W5khdNR4k0myfqqR6VJfqKhSYLsp`, team `kindnessagbo9-8129s-projects`)
+   is created and linked to the GitHub repo. **It will not build until the
+   environment variables below are set in the Vercel dashboard** — the
+   available MCP tools cannot write them and no Vercel token is present.
+   Vercel's production branch is `main`; the work lives on
+   `claude/online-store-capabilities-1akdt9`, so pushes to it produce preview
+   deployments until someone merges or repoints the production branch.
+
+   | Variable | Value |
+   | --- | --- |
+   | `NEXT_PUBLIC_SUPABASE_URL` | `https://kdpbuuaibwqktqdwzayu.supabase.co` |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the `sb_publishable_…` key |
+   | `SUPABASE_SERVICE_ROLE_KEY` | the `sb_secret_…` key — server only |
+   | `NEXT_PUBLIC_SITE_URL` | the deployed origin, for Paystack callbacks |
 
 ### Significant
 

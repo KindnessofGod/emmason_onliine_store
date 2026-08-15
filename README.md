@@ -50,9 +50,14 @@ fails `npm run typecheck` rather than rendering blank.
 
 ## What works
 
-**Shopping** — 16 categories, search, filters and sort held in the URL so a
-filtered listing is shareable. Product pages carry specs, warranty, condition
-(new / UK-used / refurbished), seller attribution and Product JSON-LD.
+**Shopping** — 16 categories, 102 products, search, filters and sort held in the
+URL so a filtered listing is shareable. Product pages carry specs, warranty,
+condition (new / UK-used / refurbished), seller attribution and Product JSON-LD.
+
+**Built for phones** — a bottom-docked buy bar that yields while the real
+button is on screen, a WhatsApp enquiry route on every product, and 44px
+minimum touch targets. `node scripts/mobile-audit.mjs` checks 360/390/414px for
+sideways scroll, small targets and unreadable text.
 
 **Cart and checkout** — the cart persists in `localStorage` and holds product
 ids only, never prices. Checkout offers **store pickup** (free) or **nationwide
@@ -79,8 +84,14 @@ amounts pass to it unconverted.
 
 Postgres, via Supabase. `supabase/migrations/` holds the schema, RLS policies,
 explicit grants and the order functions; `supabase/seed.sql` and
-`supabase/seed_i18n.sql` hold the sample catalogue — 16 categories, 64 products,
+`supabase/seed_i18n.sql` hold the catalogue — 16 categories, 102 products,
 5 sellers, 37 delivery zones.
+
+Product names and naira prices were researched against the Nigerian market in
+August 2026 so the store opens with believable numbers. **They are still
+placeholders** — confirm every price against real cost before selling, and
+re-check periodically, since naira pricing on imported electronics moves with
+the exchange rate. Delivery fees are priced outward from Owerri, not Lagos.
 
 The whole storefront reads through one module, `src/lib/data/index.ts`.
 
@@ -98,3 +109,7 @@ See `.env.example`. The ones that matter in production:
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | Digits only, e.g. `2349065755314` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only. Bypasses RLS |
 | `PAYSTACK_SECRET_KEY` | Server only. Also verifies webhook signatures |
+
+`NEXT_PUBLIC_SUPABASE_URL` must be set at **build** time as well as runtime: it
+seeds the Content-Security-Policy allow-list and the image optimiser's host
+list in `next.config.ts`.
