@@ -1,0 +1,168 @@
+import type { Category } from "../types";
+
+export const categories: Category[] = [
+  {
+    id: "cat-phones",
+    slug: "phones",
+    glyph: "📱",
+    gradient: ["#2F5C19", "#63B824"],
+    name: {
+      en: "Mobile phones",
+      yo: "Fóònù alágbèéká",
+      ig: "Ekwentị mkpanaka",
+      ha: "Wayoyin hannu",
+      fr: "Téléphones mobiles",
+    },
+    tagline: {
+      en: "Brand new and UK used, all tested",
+      yo: "Tuntun àti tí wọ́n lò ní UK, a ti dán gbogbo rẹ̀ wò",
+      ig: "Ọhụrụ na nke ejirila na UK, anyị nwaleela ha niile",
+      ha: "Sababbi da na UK, an gwada duka",
+      fr: "Neufs et occasions UK, tous testés",
+    },
+  },
+  {
+    id: "cat-audio",
+    slug: "audio",
+    glyph: "🎧",
+    gradient: ["#1B3E10", "#4A951A"],
+    name: {
+      en: "Headphones & audio",
+      yo: "Agbọ́rùn-etí àti ohùn",
+      ig: "Ihe ntị na ụda",
+      ha: "Belun kunne da sauti",
+      fr: "Casques et audio",
+    },
+    tagline: {
+      en: "JBL, Sony, Bose, Beats and more",
+      yo: "JBL, Sony, Bose, Beats àti bẹ́ẹ̀ bẹ́ẹ̀ lọ",
+      ig: "JBL, Sony, Bose, Beats na ndị ọzọ",
+      ha: "JBL, Sony, Bose, Beats da sauransu",
+      fr: "JBL, Sony, Bose, Beats et plus",
+    },
+  },
+  {
+    id: "cat-fans",
+    slug: "fans",
+    glyph: "🌀",
+    gradient: ["#3F9E12", "#7FD13B"],
+    name: {
+      en: "Fans & cooling",
+      yo: "Pankẹ́rẹ́ àti ìtutù",
+      ig: "Fan na ime jụụ",
+      ha: "Fanka da sanyaya",
+      fr: "Ventilateurs et fraîcheur",
+    },
+    tagline: {
+      en: "Rechargeable and solar — no light, no wahala",
+      yo: "Tí a lè gba iná sí, àti ti oòrùn — kò sí iná, kò sí wàhálà",
+      ig: "Nke a na-etinye ọkụ na nke anyanwụ — enweghị ọkụ, enweghị nsogbu",
+      ha: "Mai caji da na hasken rana — babu wuta, babu wahala",
+      fr: "Rechargeables et solaires — pas de courant, pas de souci",
+    },
+  },
+  {
+    id: "cat-power",
+    slug: "power",
+    glyph: "🔋",
+    gradient: ["#204F0A", "#58B324"],
+    name: {
+      en: "Solar & power",
+      yo: "Oòrùn àti iná",
+      ig: "Anyanwụ na ike",
+      ha: "Hasken rana da wuta",
+      fr: "Solaire et énergie",
+    },
+    tagline: {
+      en: "Power banks, inverters and solar panels",
+      yo: "Àpò iná, ìnfátà àti pánẹ́lì oòrùn",
+      ig: "Ebe nchekwa ọkụ, inverter na panel anyanwụ",
+      ha: "Bankunan wuta, inverter da faifan hasken rana",
+      fr: "Batteries externes, onduleurs et panneaux solaires",
+    },
+  },
+  {
+    id: "cat-creation",
+    slug: "content-creation",
+    glyph: "💡",
+    gradient: ["#4A951A", "#7FD13B"],
+    name: {
+      en: "Lighting & content creation",
+      yo: "Ìmọ́lẹ̀ àti ìṣẹ̀dá àkóónú",
+      ig: "Ọkụ na ime ihe nkiri",
+      ha: "Fitila da yin bidiyo",
+      fr: "Éclairage et création de contenu",
+    },
+    tagline: {
+      en: "Ring lights, tripods, gimbals and mics",
+      yo: "Ìmọ́lẹ̀ òrùka, agbọ́rọ̀, gímbà àti máìkì",
+      ig: "Ọkụ ring, tripod, gimbal na maịk",
+      ha: "Fitilun zobe, tripod, gimbal da makurufo",
+      fr: "Ring lights, trépieds, gimbals et micros",
+    },
+  },
+  {
+    id: "cat-wearables",
+    slug: "wearables",
+    glyph: "⌚",
+    gradient: ["#294D19", "#6BC42B"],
+    name: {
+      en: "Smart watches",
+      yo: "Aago olóye",
+      ig: "Elekere maara ihe",
+      ha: "Agogon zamani",
+      fr: "Montres connectées",
+    },
+    tagline: {
+      en: "Track your day, take your calls",
+      yo: "Tọpa ọjọ́ rẹ, gba ìpè rẹ",
+      ig: "Soro ụbọchị gị, nara oku gị",
+      ha: "Bi diyaurenka, karɓi kiranka",
+      fr: "Suivez vos journées, prenez vos appels",
+    },
+  },
+  {
+    id: "cat-accessories",
+    slug: "accessories",
+    glyph: "🔌",
+    gradient: ["#397418", "#72C935"],
+    name: {
+      en: "Accessories",
+      yo: "Àwọn ohun èlò àfikún",
+      ig: "Ngwá ndị ọzọ",
+      ha: "Ƙarin kayan aiki",
+      fr: "Accessoires",
+    },
+    tagline: {
+      en: "Chargers, cables, cases and screen guards",
+      yo: "Ṣájà, okùn, àpótí àti ìdáàbòbò ojú",
+      ig: "Chaja, eriri, akpa na ihe nchekwa ihuenyo",
+      ha: "Caja, wayoyi, kwaruruka da kariyar allo",
+      fr: "Chargeurs, câbles, coques et protections d'écran",
+    },
+  },
+  {
+    id: "cat-home",
+    slug: "home-tech",
+    glyph: "🏠",
+    gradient: ["#122B09", "#4CAF20"],
+    name: {
+      en: "Home tech",
+      yo: "Ẹ̀rọ ilé",
+      ig: "Teknụzụ ụlọ",
+      ha: "Fasahar gida",
+      fr: "Maison connectée",
+    },
+    tagline: {
+      en: "Blenders, kettles, speakers and more",
+      yo: "Ẹ̀rọ ìlọ̀, kẹ́tù, agbóhùnsáfẹ́fẹ́ àti bẹ́ẹ̀ bẹ́ẹ̀ lọ",
+      ig: "Igwe ngwakọta, ketulu, igwe okwu na ndị ọzọ",
+      ha: "Blenda, tukunyar wuta, lasifika da sauransu",
+      fr: "Blenders, bouilloires, enceintes et plus",
+    },
+  },
+];
+
+export function getCategory(slug: string): Category | undefined {
+  return categories.find((c) => c.slug === slug);
+}
