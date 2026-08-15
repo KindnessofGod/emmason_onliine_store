@@ -59,7 +59,9 @@ export default async function ProductPage({
       </nav>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-2">
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        {/* self-start: without it the grid stretches this card to match the
+            taller details column, leaving a gap under the square image. */}
+        <div className="self-start overflow-hidden rounded-2xl border border-border bg-card">
           <div className="relative aspect-square">
             <ProductImage images={product.images} name={product.name} large />
             {discount !== null && (

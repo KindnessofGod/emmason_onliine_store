@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
-import { CartProvider } from "@/lib/cart-context";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
 import { storeConfig } from "@/lib/store-config";
 
 const geist = Geist({
@@ -26,18 +23,16 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Root shell only. The storefront chrome lives in the (store) group and the
+ * admin chrome in admin/(dashboard), so neither leaks into the other.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en-NG">
-      <body className={`${geist.variable} flex min-h-screen flex-col antialiased`}>
-        <CartProvider>
-          <SiteHeader />
-          <main className="flex-1">{children}</main>
-          <SiteFooter />
-        </CartProvider>
-      </body>
+      <body className={`${geist.variable} antialiased`}>{children}</body>
     </html>
   );
 }

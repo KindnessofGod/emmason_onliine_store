@@ -1,6 +1,6 @@
 /** Store-wide settings, all overridable by environment variable. */
 export const storeConfig = {
-  name: process.env.NEXT_PUBLIC_STORE_NAME || "Emmason Store",
+  name: process.env.NEXT_PUBLIC_STORE_NAME || "EMMASON Gadgets",
   tagline: "Gadgets, sound and home essentials — delivered across Nigeria.",
   /** Digits only, international format. e.g. 2348012345678 */
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "2348000000000",

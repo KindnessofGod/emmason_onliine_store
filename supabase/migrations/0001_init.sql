@@ -1,7 +1,7 @@
 -- Emmason Online Store — core schema
 -- Money is stored as integer kobo (1 naira = 100 kobo) to avoid floating point drift.
 
-create extension if not exists "pgcrypto";
+-- gen_random_uuid() is core Postgres 13+, so no extension is needed for ids.
 
 -- ---------------------------------------------------------------------------
 -- Categories

@@ -52,10 +52,13 @@ begin
       using errcode = 'check_violation';
   end if;
 
-  -- Generate a short, human-quotable reference. Retry on the vanishingly
-  -- unlikely collision rather than failing the customer's checkout.
+  -- Generate a short, human-quotable reference. Built from gen_random_uuid()
+  -- rather than pgcrypto's gen_random_bytes: uuid generation is core Postgres,
+  -- whereas pgcrypto lives in the `extensions` schema on Supabase and so is
+  -- invisible to this function's pinned search_path.
+  -- Retry on the vanishingly unlikely collision rather than failing checkout.
   loop
-    v_reference := 'EMM-' || upper(substr(encode(gen_random_bytes(4), 'hex'), 1, 6));
+    v_reference := 'EMM-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 6));
     exit when not exists (select 1 from public.orders o where o.reference = v_reference);
     v_attempts := v_attempts + 1;
     if v_attempts > 10 then
