@@ -80,6 +80,13 @@ const ha: Dictionary = {
     share: "Raba",
     reviews: "Sharhi {count}",
     noReviews: "Babu sharhi tukuna",
+    askOnWhatsApp: "Yi tambaya a kan wannan ta WhatsApp",
+    askOnWhatsAppShort: "Tambaya",
+    saveAmount: "Ka tanadi {amount}",
+    pickupToday: "A shirye yake a ɗauka yau a shagonmu na Owerri",
+    deliveryEtaHome: "Ana kai shi Imo yau ko gobe ranar aiki",
+    deliveryEtaOther: "Ana kai shi ko'ina a ƙasar, {eta}",
+    lastOne: "Guda ɗaya ya rage",
   },
   shop: {
     title: "Duk kayayyaki",
@@ -118,6 +125,8 @@ const ha: Dictionary = {
     checkout: "Ci gaba zuwa biya",
     continueShopping: "Ci gaba da siyayya",
     soldByShort: "daga",
+    freeDeliveryProgress: "Ƙara {amount} don samun kai kaya kyauta",
+    freeDeliveryReached: "Odarka ya cancanci kai kaya kyauta",
   },
   checkout: {
     title: "Biyan kuɗi",

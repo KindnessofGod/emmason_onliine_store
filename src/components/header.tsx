@@ -59,7 +59,7 @@ export function Header({
           </p>
           <a
             href={`tel:${site.phones[0].replace(/\s/g, "")}`}
-            className="flex shrink-0 items-center gap-1.5 font-semibold hover:underline"
+            className="flex h-9 shrink-0 items-center gap-1.5 font-semibold hover:underline"
           >
             <PhoneIcon className="h-3.5 w-3.5" />
             {site.phones[0]}
@@ -72,7 +72,7 @@ export function Header({
           type="button"
           onClick={() => setMenuOpen(true)}
           aria-label={dict.nav.menu}
-          className="-ml-2 rounded-lg p-2 text-ink-700 transition hover:bg-ink-100 lg:hidden"
+          className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-ink-700 transition hover:bg-ink-100 lg:hidden"
         >
           <MenuIcon className="h-6 w-6" />
         </button>
@@ -112,7 +112,7 @@ export function Header({
 
           <Link
             href={href(locale, "/cart")}
-            className="relative rounded-lg p-2.5 text-ink-700 transition hover:bg-ink-100 hover:text-ink-900"
+            className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-ink-700 transition hover:bg-ink-100 hover:text-ink-900"
             aria-label={dict.nav.cart}
           >
             <CartIcon className="h-[22px] w-[22px]" />

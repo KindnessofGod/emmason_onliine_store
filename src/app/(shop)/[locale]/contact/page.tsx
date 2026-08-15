@@ -60,7 +60,7 @@ export default async function ContactPage({
       <p className="mt-2 max-w-xl text-ink-500">{dict.home.storeBody}</p>
 
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
-        <section className="rounded-card border border-ink-100 bg-white p-7 shadow-soft">
+        <section className="min-w-0 rounded-card border border-ink-100 bg-white p-5 shadow-soft sm:p-7">
           <h2 className="text-lg font-extrabold text-ink-900">{dict.footer.walkIn}</h2>
           <address className="mt-4 flex gap-3 not-italic">
             <PinIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
@@ -86,7 +86,7 @@ export default async function ContactPage({
           </a>
         </section>
 
-        <section className="rounded-card border border-ink-100 bg-white p-7 shadow-soft">
+        <section className="min-w-0 rounded-card border border-ink-100 bg-white p-5 shadow-soft sm:p-7">
           <h2 className="text-lg font-extrabold text-ink-900">{dict.footer.contactHeading}</h2>
           <ul className="mt-4 space-y-3">
             {site.phones.map((phone) => (
@@ -123,7 +123,7 @@ export default async function ContactPage({
           </ul>
         </section>
 
-        <section className="rounded-card border border-ink-100 bg-white p-7 shadow-soft lg:col-span-2">
+        <section className="min-w-0 rounded-card border border-ink-100 bg-white p-5 shadow-soft sm:p-7 lg:col-span-2">
           <h2 className="text-lg font-extrabold text-ink-900">{dict.footer.followUs}</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             {socials.map(({ label, handle, url, Icon }) => (

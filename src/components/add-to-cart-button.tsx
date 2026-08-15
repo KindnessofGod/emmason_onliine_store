@@ -34,7 +34,7 @@ export function AddToCartButton({
         type="button"
         disabled
         className={`w-full cursor-not-allowed rounded-xl bg-ink-100 px-4 font-bold text-ink-400 ${
-          size === "sm" ? "py-2 text-sm" : "py-3"
+          size === "sm" ? "min-h-11 py-2 text-sm" : "min-h-12 py-3"
         } ${className}`}
       >
         {labels.outOfStock}
@@ -53,7 +53,7 @@ export function AddToCartButton({
       }}
       className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 font-bold text-white transition ${
         justAdded ? "bg-brand-700" : "bg-brand-600 hover:bg-brand-700"
-      } ${size === "sm" ? "py-2 text-sm" : "py-3"} ${className}`}
+      } ${size === "sm" ? "min-h-11 py-2 text-sm" : "min-h-12 py-3"} ${className}`}
     >
       {justAdded ? (
         <>

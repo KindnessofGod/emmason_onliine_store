@@ -73,7 +73,7 @@ export function Footer({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={label}
-                className="rounded-lg bg-white/10 p-2.5 text-white transition hover:bg-brand-500"
+                className="flex h-11 w-11 items-center justify-center rounded-lg bg-white/10 text-white transition hover:bg-brand-500"
               >
                 <Icon className="h-[18px] w-[18px]" />
               </a>
@@ -90,7 +90,7 @@ export function Footer({
               <li key={category.slug}>
                 <Link
                   href={href(locale, `/category/${category.slug}`)}
-                  className="text-ink-300 transition hover:text-brand-300"
+                  className="inline-flex min-h-11 items-center text-ink-300 transition hover:text-brand-300"
                 >
                   {category.name[locale]}
                 </Link>
@@ -108,7 +108,7 @@ export function Footer({
               <li key={link.path}>
                 <Link
                   href={href(locale, link.path)}
-                  className="text-ink-300 transition hover:text-brand-300"
+                  className="inline-flex min-h-11 items-center text-ink-300 transition hover:text-brand-300"
                 >
                   {link.label}
                 </Link>
@@ -121,7 +121,7 @@ export function Footer({
               <li key={link.path}>
                 <Link
                   href={href(locale, link.path)}
-                  className="text-ink-300 transition hover:text-brand-300"
+                  className="inline-flex min-h-11 items-center text-ink-300 transition hover:text-brand-300"
                 >
                   {link.label}
                 </Link>
@@ -148,7 +148,7 @@ export function Footer({
                 <PhoneIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
                 <a
                   href={`tel:${phone.replace(/\s/g, "")}`}
-                  className="text-ink-300 transition hover:text-brand-300"
+                  className="inline-flex min-h-11 items-center text-ink-300 transition hover:text-brand-300"
                 >
                   {phone}
                 </a>
@@ -158,7 +158,7 @@ export function Footer({
               <MailIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
               <a
                 href={`mailto:${site.email}`}
-                className="text-ink-300 transition hover:text-brand-300"
+                className="inline-flex min-h-11 items-center text-ink-300 transition hover:text-brand-300"
               >
                 {site.email}
               </a>

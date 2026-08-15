@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { maskNin } from "@/lib/nigeria";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const phoneSchema = z
   .string()
@@ -48,6 +49,16 @@ export type SellerApplicationResult =
 export async function submitSellerApplication(
   input: SellerApplicationInput,
 ): Promise<SellerApplicationResult> {
+  // Unauthenticated and it writes a row, so it is the obvious target for a
+  // script. Five an hour is far above what a real applicant needs.
+  const limit = await checkRateLimit("seller-application", 5, 60 * 60 * 1000);
+  if (!limit.ok) {
+    return {
+      ok: false,
+      error: "Too many applications from this connection. Please try again later.",
+    };
+  }
+
   const parsed = applicationSchema.safeParse(input);
 
   if (!parsed.success) {

@@ -80,6 +80,13 @@ const fr: Dictionary = {
     share: "Partager",
     reviews: "{count} avis",
     noReviews: "Pas encore d'avis",
+    askOnWhatsApp: "Poser une question sur WhatsApp",
+    askOnWhatsAppShort: "Demander",
+    saveAmount: "Vous économisez {amount}",
+    pickupToday: "Disponible en retrait dès aujourd'hui à notre boutique d'Owerri",
+    deliveryEtaHome: "Livré dans l'État d'Imo le jour même ou le jour ouvrable suivant",
+    deliveryEtaOther: "Livraison dans tout le pays, {eta}",
+    lastOne: "Dernier exemplaire en stock",
   },
   shop: {
     title: "Tous les produits",
@@ -118,6 +125,8 @@ const fr: Dictionary = {
     checkout: "Passer au paiement",
     continueShopping: "Continuer mes achats",
     soldByShort: "par",
+    freeDeliveryProgress: "Ajoutez {amount} pour bénéficier de la livraison gratuite",
+    freeDeliveryReached: "Votre commande donne droit à la livraison gratuite",
   },
   checkout: {
     title: "Paiement",

@@ -3,7 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProductBuyBox } from "@/components/product-buy-box";
 import { ProductImage } from "@/components/product-image";
-import { PinIcon, ShieldIcon, StoreIcon, TruckIcon } from "@/components/icons";
+import {
+  CheckCircleIcon,
+  PinIcon,
+  ShieldIcon,
+  StoreIcon,
+  TruckIcon,
+  WhatsAppIcon,
+} from "@/components/icons";
+import { StickyBuyBar } from "@/components/sticky-buy-bar";
 import { ProductGrid } from "@/components/product-card";
 import {
   Breadcrumbs,
@@ -22,7 +30,7 @@ import {
 } from "@/lib/data";
 import { discountPercent, formatPrice } from "@/lib/format";
 import { getDictionary, href, interpolate, isLocale, locales } from "@/lib/i18n";
-import { site } from "@/lib/site";
+import { site, whatsappLink } from "@/lib/site";
 
 export async function generateStaticParams() {
   const products = await allProducts();
@@ -63,6 +71,9 @@ export default async function ProductPage({
     relatedProducts(product, 4),
   ]);
   const discount = discountPercent(product.price, product.compareAtPrice);
+  const enquiryHref = whatsappLink(
+    `Hello Emmason, is the ${product.name} (${formatPrice(product.price, "en")}) available?`,
+  );
 
   // Search engines read this even though the storefront is not transactional yet.
   const jsonLd = {
@@ -111,9 +122,13 @@ export default async function ProductPage({
         ]}
       />
 
+      {/* `min-w-0` on both columns matters: a grid item defaults to
+          `min-width: auto`, so the long legal business name in the seller card
+          was widening the single mobile column to 460px and scrolling the whole
+          page sideways. */}
       <div className="grid gap-10 lg:grid-cols-2">
         {/* Gallery */}
-        <div>
+        <div className="min-w-0">
           <div className="relative overflow-hidden rounded-card">
             <ProductImage
               categorySlug={product.categorySlug}
@@ -147,7 +162,7 @@ export default async function ProductPage({
         </div>
 
         {/* Buy column */}
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <ConditionBadge condition={product.condition} dict={dict} />
             <span className="text-xs font-semibold text-ink-400">{product.brand}</span>
@@ -183,6 +198,15 @@ export default async function ProductPage({
             )}
           </div>
 
+          {/* The naira figure lands harder than the percentage does. */}
+          {product.compareAtPrice && (
+            <p className="mt-2 text-sm font-bold text-brand-700">
+              {interpolate(dict.product.saveAmount, {
+                amount: formatPrice(product.compareAtPrice - product.price, locale),
+              })}
+            </p>
+          )}
+
           <p className="mt-5 leading-relaxed text-ink-600">{product.description[locale]}</p>
 
           {seller && (
@@ -203,23 +227,42 @@ export default async function ProductPage({
             </div>
           )}
 
-          <ProductBuyBox
-            productId={product.id}
-            stock={product.stock}
-            labels={{
-              add: dict.product.addToCart,
-              added: dict.product.added,
-              outOfStock: dict.product.outOfStock,
-              quantity: dict.product.quantity,
-              buyNow: dict.product.buyNow,
-            }}
-            cartHref={href(locale, "/cart")}
-          />
+          <div id="buy-box">
+            <ProductBuyBox
+              productId={product.id}
+              stock={product.stock}
+              labels={{
+                add: dict.product.addToCart,
+                added: dict.product.added,
+                outOfStock: dict.product.outOfStock,
+                quantity: dict.product.quantity,
+                buyNow: dict.product.buyNow,
+              }}
+              cartHref={href(locale, "/cart")}
+            />
+
+            {/* Cheapest route to a human. Nigerian shoppers routinely want to
+                confirm availability before they pay, and losing that question
+                to a closed tab loses the sale. */}
+            <a
+              href={enquiryHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-ink-200 py-3 text-sm font-bold text-ink-700 transition hover:border-brand-600 hover:text-brand-700"
+            >
+              <WhatsAppIcon className="h-5 w-5" />
+              {dict.product.askOnWhatsApp}
+            </a>
+          </div>
 
           <ul className="mt-7 space-y-3 border-t border-ink-100 pt-6">
             <li className="flex gap-3 text-sm">
               <TruckIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
-              <span className="text-ink-600">{dict.product.deliveryBody}</span>
+              <span className="text-ink-600">{dict.product.deliveryEtaHome}</span>
+            </li>
+            <li className="flex gap-3 text-sm">
+              <CheckCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+              <span className="text-ink-600">{dict.product.pickupToday}</span>
             </li>
             <li className="flex gap-3 text-sm">
               <ShieldIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
@@ -288,6 +331,19 @@ export default async function ProductPage({
           <ProductGrid products={related} locale={locale} dict={dict} />
         </section>
       )}
+
+      <StickyBuyBar
+        productId={product.id}
+        stock={product.stock}
+        price={formatPrice(product.price, locale)}
+        whatsappHref={enquiryHref}
+        labels={{
+          add: dict.product.addToCart,
+          added: dict.product.added,
+          outOfStock: dict.product.outOfStock,
+          ask: dict.product.askOnWhatsApp,
+        }}
+      />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   getOrderByReference,
   placeOrder,
 } from "@/lib/orders";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { storeConfig } from "@/lib/store-config";
 import { buildOrderMessage, whatsAppLink } from "@/lib/whatsapp";
 
@@ -72,6 +73,17 @@ export type CheckoutResult =
  * everything Emmason needs to fulfil it.
  */
 export async function submitCheckout(input: CheckoutInput): Promise<CheckoutResult> {
+  // Each attempt reserves stock, so a flood would take real inventory out of
+  // circulation even without a payment. Generous enough that a shopper who
+  // mistypes a card and retries never notices it.
+  const limit = await checkRateLimit("checkout", 10, 10 * 60 * 1000);
+  if (!limit.ok) {
+    return {
+      ok: false,
+      error: "Too many checkout attempts. Please wait a moment and try again.",
+    };
+  }
+
   const parsed = checkoutSchema.safeParse(input);
 
   if (!parsed.success) {

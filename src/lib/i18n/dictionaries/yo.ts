@@ -80,6 +80,13 @@ const yo: Dictionary = {
     share: "Pín",
     reviews: "Àtúnyẹ̀wò {count}",
     noReviews: "Kò sí àtúnyẹ̀wò síbẹ̀",
+    askOnWhatsApp: "Bèèrè nípa rẹ̀ lórí WhatsApp",
+    askOnWhatsAppShort: "Bèèrè",
+    saveAmount: "O ṣàjọpamọ́ {amount}",
+    pickupToday: "Ó ti ṣetán fún gbígbà lónìí ní ṣọ́ọ̀bù wa ní Owerri",
+    deliveryEtaHome: "Á fi jíṣẹ́ ní Imo lónìí tàbí ọjọ́ iṣẹ́ tó tẹ̀lé e",
+    deliveryEtaOther: "Á fi jíṣẹ́ jákèjádò orílẹ̀-èdè, {eta}",
+    lastOne: "Ọ̀kan ṣoṣo ló kù",
   },
   shop: {
     title: "Gbogbo ọjà",
@@ -118,6 +125,8 @@ const yo: Dictionary = {
     checkout: "Tẹ̀síwájú sí ìsanwó",
     continueShopping: "Máa bá ríra lọ",
     soldByShort: "láti ọwọ́",
+    freeDeliveryProgress: "Fi {amount} kún un kí o lè rí ìfijíṣẹ́ ọfẹ́",
+    freeDeliveryReached: "Àṣẹ rẹ tóótun fún ìfijíṣẹ́ ọfẹ́",
   },
   checkout: {
     title: "Ìsanwó",

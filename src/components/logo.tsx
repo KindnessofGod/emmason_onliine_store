@@ -29,8 +29,15 @@ export function Logo({
         <circle cx="12.6" cy="20" r="2" fill="white" />
       </svg>
       <span className="flex flex-col leading-none">
-        <span className={`text-[1.35rem] font-extrabold tracking-tight ${word}`}>emmason</span>
-        <span className={`mt-0.5 text-[0.5rem] font-semibold uppercase tracking-[0.16em] ${sub}`}>
+        <span className={`text-[1.15rem] font-extrabold tracking-tight sm:text-[1.35rem] ${word}`}>
+          emmason
+        </span>
+        {/* The descriptor is what pushes the header past the viewport on a
+            360px phone. It is decoration next to the wordmark, so it goes
+            first rather than squeezing the cart and menu off the edge. */}
+        <span
+          className={`mt-0.5 hidden text-[0.5rem] font-semibold uppercase tracking-[0.16em] sm:block ${sub}`}
+        >
           Mobile Phone &amp; Tech Gadget
         </span>
       </span>

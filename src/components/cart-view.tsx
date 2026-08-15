@@ -8,7 +8,7 @@ import { TrashIcon, TruckIcon } from "./icons";
 import { ProductImage } from "./product-image";
 import { EmptyState } from "./ui";
 import { formatPrice } from "@/lib/format";
-import { href, pluralize, type Dictionary, type Locale } from "@/lib/i18n";
+import { href, interpolate, pluralize, type Dictionary, type Locale } from "@/lib/i18n";
 import type { Product } from "@/lib/types";
 
 export function CartView({
@@ -147,15 +147,34 @@ export function CartView({
             </div>
           </dl>
 
-          {!qualifiesFree && (
-            <p className="mt-4 flex gap-2 rounded-lg bg-brand-50 p-3 text-xs text-brand-800">
+          {/* A real threshold, shown as real progress. It lifts basket size
+              because the reward is genuine, not because the bar is theatre. */}
+          <div className="mt-4 rounded-lg bg-brand-50 p-3">
+            <p className="flex gap-2 text-xs font-semibold text-brand-800">
               <TruckIcon className="h-4 w-4 shrink-0" />
               <span>
-                {formatPrice(freeDeliveryThreshold - subtotal, locale)} → {dict.cart.deliveryFree}{" "}
-                {dict.cart.delivery.toLowerCase()}
+                {qualifiesFree
+                  ? dict.cart.freeDeliveryReached
+                  : interpolate(dict.cart.freeDeliveryProgress, {
+                      amount: formatPrice(freeDeliveryThreshold - subtotal, locale),
+                    })}
               </span>
             </p>
-          )}
+            <div
+              className="mt-2 h-1.5 overflow-hidden rounded-full bg-brand-100"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={freeDeliveryThreshold}
+              aria-valuenow={Math.min(subtotal, freeDeliveryThreshold)}
+            >
+              <div
+                className="h-full rounded-full bg-brand-600 transition-[width] duration-300"
+                style={{
+                  width: `${Math.min(100, (subtotal / freeDeliveryThreshold) * 100)}%`,
+                }}
+              />
+            </div>
+          </div>
 
           <div className="mt-5 flex items-baseline justify-between border-t border-ink-100 pt-5">
             <span className="font-bold text-ink-900">{dict.cart.total}</span>

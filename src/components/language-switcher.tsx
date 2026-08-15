@@ -71,7 +71,7 @@ export function LanguageSwitcher({
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={label}
-        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-semibold transition ${trigger}`}
+        className={`flex h-11 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold transition ${trigger}`}
       >
         <GlobeIcon className="h-[18px] w-[18px]" />
         <span className="hidden sm:inline">{localeMeta[locale].native}</span>

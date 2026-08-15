@@ -80,6 +80,13 @@ const ig: Dictionary = {
     share: "Kesaa",
     reviews: "Nyocha {count}",
     noReviews: "Enwebeghị nyocha",
+    askOnWhatsApp: "Jụọ maka ya na WhatsApp",
+    askOnWhatsAppShort: "Jụọ",
+    saveAmount: "Ị na-echekwa {amount}",
+    pickupToday: "Ọ dịla njikere ka ị bịa were ya taa n'ụlọ ahịa anyị dị na Owerri",
+    deliveryEtaHome: "A ga-ebuga ya na Imo taa ma ọ bụ echi ụbọchị ọrụ",
+    deliveryEtaOther: "A na-ebuga ya na mba niile, {eta}",
+    lastOne: "Naanị otu fọdụrụ",
   },
   shop: {
     title: "Ngwaahịa niile",
@@ -118,6 +125,8 @@ const ig: Dictionary = {
     checkout: "Gaa n'ihu kwụọ ụgwọ",
     continueShopping: "Gaa n'ihu na-azụ ahịa",
     soldByShort: "site n'aka",
+    freeDeliveryProgress: "Tinye {amount} ọzọ ka ị nweta mbupu n'efu",
+    freeDeliveryReached: "Iwu gị eruola maka mbupu n'efu",
   },
   checkout: {
     title: "Ịkwụ ụgwọ",

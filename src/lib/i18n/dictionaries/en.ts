@@ -82,6 +82,13 @@ const en = {
     share: "Share",
     reviews: "{count} reviews",
     noReviews: "No reviews yet",
+    askOnWhatsApp: "Ask about this on WhatsApp",
+    askOnWhatsAppShort: "Ask",
+    saveAmount: "You save {amount}",
+    pickupToday: "Ready to collect today at our Owerri shop",
+    deliveryEtaHome: "Delivered in Imo the same or next working day",
+    deliveryEtaOther: "Delivered nationwide, {eta}",
+    lastOne: "Last one in stock",
   },
   shop: {
     title: "All products",
@@ -120,6 +127,8 @@ const en = {
     checkout: "Proceed to checkout",
     continueShopping: "Continue shopping",
     soldByShort: "by",
+    freeDeliveryProgress: "Add {amount} more to get free delivery",
+    freeDeliveryReached: "Your order qualifies for free delivery",
   },
   checkout: {
     title: "Checkout",
