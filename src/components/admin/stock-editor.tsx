@@ -48,11 +48,11 @@ export function StockEditor({
         onKeyDown={(event) => {
           if (event.key === "Enter") event.currentTarget.blur();
         }}
-        className={`w-16 rounded-lg border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 ${
-          error ? "border-red-500" : "border-border"
-        } ${value === 0 ? "text-red-600" : value <= 5 ? "text-accent-600" : ""}`}
+        className={`w-16 rounded-lg border bg-white px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500 ${
+          error ? "border-red-500" : "border-ink-200"
+        } ${value === 0 ? "text-red-600" : value <= 5 ? "text-flash-600" : ""}`}
       />
-      {pending && <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-hidden />}
+      {pending && <Loader2 className="size-3.5 animate-spin text-ink-500" aria-hidden />}
       {saved && <Check className="size-3.5 text-brand-600" aria-hidden />}
     </span>
   );

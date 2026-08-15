@@ -1,140 +1,97 @@
-# EMMASON Gadgets online store
+# Emmason — multilingual electronics marketplace
 
-An online store for consumer electronics and phone accessories, priced in
-naira and delivered across Nigeria. Customers can pay by card, bank transfer
-or USSD through Paystack, or send their order to WhatsApp and settle it there.
+Storefront and seller marketplace for **Emmason Mobile Phones, Tech & Gadgets**
+(No 24 Day Star Plaza, Owerri). Customers buy directly; verified third-party
+sellers list alongside the house catalogue.
 
-Built with Next.js 16 (App Router), Supabase (Postgres + Auth) and Tailwind v4.
+Built with Next.js 16 (App Router), React 19, TypeScript and Tailwind CSS v4.
 
----
-
-## Running it locally
-
-You need Node 20+ and Docker.
+## Getting started
 
 ```bash
 npm install
-npx supabase start          # Postgres, PostgREST and Auth in Docker
-cp .env.example .env.local  # then fill in the values printed by supabase start
-npm run dev
+npm run dev      # http://localhost:3000
 ```
 
-`supabase start` applies everything in `supabase/migrations/` and then seeds
-the sample catalogue from `supabase/seed.sql` — 16 categories, 64 products and
-37 delivery zones.
+Other scripts: `npm run build`, `npm start`, `npm run typecheck`.
 
-If some of the optional containers fail to start in a restricted environment,
-the app only needs the core four:
+## Languages
 
-```bash
-npx supabase start -x edge-runtime,studio,imgproxy,inbucket,realtime,storage-api,supavisor,vector
-```
+Five locales, each a full translation — not machine-filled stubs:
 
-### Creating the first admin
+| Code | Language |
+| ---- | -------- |
+| `en` | English |
+| `yo` | Yorùbá |
+| `ig` | Igbo |
+| `ha` | Hausa |
+| `fr` | Français |
 
-Admin access is granted by a row in `public.admins`, keyed to a Supabase auth
-user. Nothing in the UI can grant it — that is deliberate.
+Every route is locale-prefixed (`/yo/shop`, `/ha/product/nokia-150-4g`). A
+visitor landing on `/` is redirected by `src/proxy.ts`, which prefers the
+`emmason_locale` cookie set by the language switcher and otherwise negotiates
+from `Accept-Language`. Switching language keeps you on the same page.
 
-```bash
-# 1. Create the auth user (swap in your own email and password)
-curl -X POST "$SUPABASE_URL/auth/v1/admin/users" \
-  -H "apikey: $SERVICE_ROLE_KEY" \
-  -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"email":"you@example.com","password":"…","email_confirm":true}'
+English is the source of truth: `src/lib/i18n/dictionaries/en.ts` defines the
+`Dictionary` type, and the other four are typed against it — a missing or
+misspelled key fails `npm run typecheck` rather than rendering blank.
 
-# 2. Add the returned id to the roster
-insert into public.admins (user_id, email)
-values ('<returned-id>', 'you@example.com');
-```
+Counts use `pluralize()` (one/other), which is enough for English and French;
+Yoruba, Igbo and Hausa do not inflect these nouns.
 
-Then sign in at `/admin/login`.
+## What works
 
----
+**Shopping** — category browsing, search, filters (category, condition, price)
+and sorting, all held in the URL so a filtered listing is shareable. Product
+pages carry specs, warranty, seller attribution and Product JSON-LD.
 
-## How the money works
+**Cart & checkout** — cart persists in `localStorage`. Checkout collects contact
+details, offers **store pickup** (free) or **nationwide delivery** (₦3,500 flat,
+free over ₦150,000), and three payment methods. Validation covers Nigerian phone
+formats and email, with errors announced via `aria-invalid` / `aria-describedby`.
 
-Every amount is stored as an **integer number of kobo** (₦1 = 100 kobo) and
-converted to naira only at the moment of display. No arithmetic anywhere
-touches a floating point number, so totals cannot drift by a kobo.
+**Marketplace** — seller landing page, and a registration form capturing business
+details, category coverage and **NIN** for identity verification. The NIN is
+validated as 11 digits and masked (`••••••••901`) the moment it leaves the form;
+it is never rendered in full or written to a log. Applications are gated on admin
+approval before a seller can list.
 
-Paystack also denominates NGN in kobo, so amounts pass to it unconverted.
+## Data layer
 
-## How an order is placed
+There is no database yet. The catalogue is seeded in `src/lib/data/` and read
+through a single function, `queryProducts()` in `src/lib/data/index.ts`. That is
+the intended swap point: replacing the seed arrays with real queries there leaves
+every page unchanged.
 
-The browser's cart holds **product ids and quantities only — never prices**.
-At checkout it is sent to `place_order()` (see
-`supabase/migrations/0003_place_order.sql`), which inside a single transaction:
+Three places currently stop short of a backend, each marked with a comment:
 
-1. looks up the delivery fee for the destination state,
-2. locks each product with `SELECT … FOR UPDATE`,
-3. reads the real price and checks stock,
-4. writes the order and its line items with the price snapshotted,
-5. decrements stock to reserve it.
+- **Checkout** derives an order reference locally instead of POSTing an order.
+- **Seller registration** confirms locally instead of persisting an application.
+- **Newsletter** confirms locally instead of calling a mailing-list provider.
 
-Two consequences worth knowing: a tampered cart cannot change what a customer
-is charged, and two shoppers racing for the last unit cannot both get it.
-
-Cancelling an order (`cancel_order()`) returns the reserved stock, and is
-guarded so repeat cancellation cannot inflate inventory.
-
-## Payment confirmation
-
-An order is only marked paid on evidence from Paystack, never on the strength
-of a browser redirect:
-
-- **Webhook** (`/api/paystack/webhook`) — the `x-paystack-signature` header is
-  verified as an HMAC-SHA512 of the raw body, compared in constant time. The
-  handler then independently calls Paystack's verify endpoint rather than
-  trusting the payload, and refuses to fulfil an underpayment.
-- **Return page** (`/order/[reference]`) — verifies too, as a fallback for when
-  the webhook is slow. Marking paid is idempotent, so both paths can race
-  safely.
-
-Point your Paystack dashboard webhook at
-`https://your-domain/api/paystack/webhook`.
-
-## Security posture
-
-- Row Level Security denies by default. The anon key can read the live
-  catalogue and nothing else; it cannot read a single order.
-- Every write goes through server-side code holding the service role key,
-  which never reaches the browser.
-- `supabase/migrations/0004_grants.sql` states table privileges explicitly
-  rather than relying on Supabase's implicit defaults, so the schema behaves
-  the same on a hosted project, a local stack or CI.
-
----
+Product imagery is also seeded: `ProductImage` renders a branded gradient tile
+per category rather than a broken `<img>`. Swap it for `next/image` when real
+photography exists.
 
 ## Layout
 
 ```
 src/
-  app/
-    (store)/          customer-facing pages, with the store header and footer
-    admin/            staff dashboard, its own chrome, gated by middleware
-    api/paystack/     webhook receiver
-  actions/            server actions: cart pricing, checkout, admin writes
-  lib/                data access, money, Paystack, WhatsApp, auth helpers
-  components/         UI, with admin components under components/admin
-supabase/
-  migrations/         schema, RLS, order functions, grants
-  seed.sql            sample catalogue
+  app/[locale]/        routes — home, shop, category, product, cart, checkout,
+                       deals, sell, sell/register, seller, about, contact, policies
+  components/          header, footer, cart, checkout, filters, product cards, icons
+  lib/
+    i18n/              locale config, dictionaries, interpolate/pluralize helpers
+    data/              seeded catalogue, sellers, categories, query layer
+    nigeria.ts         states list, phone/email/NIN validation, NIN masking
+    format.ts          Naira formatting, discounts, order references
+    site.ts            business address, phone numbers, socials, delivery pricing
+  proxy.ts             locale negotiation and redirect
 ```
 
-## Environment variables
+## Notes
 
-See `.env.example`. The ones that matter in production:
-
-| Variable | Purpose |
-| --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | Used to build the Paystack callback URL |
-| `NEXT_PUBLIC_WHATSAPP_NUMBER` | Digits only, e.g. `2348012345678` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server only. Bypasses RLS |
-| `PAYSTACK_SECRET_KEY` | Server only. Also verifies webhook signatures |
-
-## Current state
-
-The catalogue is sample data — real names, plausible naira prices, no photos.
-Products render a generated placeholder tile until image URLs are added
-through the admin panel, so nothing appears broken in the meantime.
+- Prices are whole Naira integers; `formatPrice()` handles display per locale.
+- The design tokens (brand greens, the red sale flash) live in
+  `src/app/globals.css` under `@theme`, sampled from the shop's print artwork.
+- `prefers-reduced-motion` is respected globally.

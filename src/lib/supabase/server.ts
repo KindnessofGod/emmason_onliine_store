@@ -56,3 +56,19 @@ export function createSupabaseAdminClient() {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 }
+
+/**
+ * Cookieless anon client for public catalogue reads.
+ *
+ * The catalogue is readable by everyone, so it needs no session — and using a
+ * cookie-bound client here would make it unusable from `generateStaticParams`,
+ * which runs at build time with no HTTP request in scope. Still subject to row
+ * level security, so it can only ever see live products.
+ */
+export function createSupabaseCatalogClient() {
+  return createClient(
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+}

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import type { Product } from "@/lib/types";
+import type { DbCategory, DbProduct } from "@/lib/db-types";
 
 export interface DashboardStats {
   ordersToday: number;
@@ -51,7 +51,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   };
 }
 
-export interface AdminProductRow extends Product {
+export interface AdminProductRow extends DbProduct {
   category_name: string;
 }
 
@@ -76,14 +76,14 @@ export async function listAdminProducts(options?: {
   if (error) throw error;
 
   return (data ?? []).map((row) => {
-    const { categories, ...product } = row as Product & {
+    const { categories, ...product } = row as DbProduct & {
       categories: { name: string } | null;
     };
     return { ...product, category_name: categories?.name ?? "—" };
   });
 }
 
-export async function getAdminProduct(id: string): Promise<Product | null> {
+export async function getAdminProduct(id: string): Promise<DbProduct | null> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("products")
@@ -92,5 +92,17 @@ export async function getAdminProduct(id: string): Promise<Product | null> {
     .maybeSingle();
 
   if (error) throw error;
-  return data as Product | null;
+  return data as DbProduct | null;
+}
+
+/** Categories as raw rows, for the admin editor's category picker. */
+export async function listAdminCategories(): Promise<DbCategory[]> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .order("sort_order");
+
+  if (error) throw error;
+  return (data ?? []) as DbCategory[];
 }

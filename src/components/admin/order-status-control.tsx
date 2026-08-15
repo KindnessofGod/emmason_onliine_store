@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { setOrderStatus } from "@/actions/admin";
-import type { OrderStatus } from "@/lib/types";
+import type { OrderStatus } from "@/lib/db-types";
 
 const OPTIONS: { value: OrderStatus; label: string }[] = [
   { value: "pending", label: "Pending" },
@@ -51,7 +51,7 @@ export function OrderStatusControl({
         id="order-status"
         value={value}
         onChange={(event) => setValue(event.target.value as OrderStatus)}
-        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        className="w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
       >
         {OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>

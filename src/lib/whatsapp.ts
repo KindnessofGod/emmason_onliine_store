@@ -1,12 +1,24 @@
 import { formatNaira } from "@/lib/money";
-import { storeConfig } from "@/lib/store-config";
-import type { OrderItem } from "@/lib/types";
+import { site } from "@/lib/site";
+import type { FulfilmentMethod, OrderItem, PaymentMethodDb } from "@/lib/db-types";
+
+/** Digits-only international form of the shop's WhatsApp line. */
+const WHATSAPP_NUMBER =
+  process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, "") || "2349065755314";
+
+const PAYMENT_LABEL: Record<PaymentMethodDb, string> = {
+  "on-delivery": "Pay on delivery",
+  transfer: "Bank transfer",
+  card: "Card (Paystack)",
+};
 
 interface WhatsAppOrderMessage {
   reference: string;
   customerName: string;
-  deliveryAddress: string;
-  deliveryState: string;
+  fulfilment: FulfilmentMethod;
+  paymentMethod: PaymentMethodDb;
+  deliveryAddress?: string | null;
+  deliveryState?: string | null;
   deliveryCity?: string | null;
   items: Pick<OrderItem, "name_snapshot" | "quantity" | "line_total_kobo">[];
   subtotalKobo: number;
@@ -16,19 +28,30 @@ interface WhatsAppOrderMessage {
 }
 
 /**
- * Build the message the customer sends us on WhatsApp. The order already
- * exists in the database by this point — this is the human-readable copy so
- * the conversation starts with everything already stated.
+ * The message the customer sends to the shop. The order already exists in the
+ * database by this point — this is the readable copy, so the conversation
+ * opens with everything already stated instead of twenty questions.
  */
 export function buildOrderMessage(order: WhatsAppOrderMessage): string {
   const lines = [
     `*New order ${order.reference}*`,
     "",
     `*Name:* ${order.customerName}`,
-    `*Deliver to:* ${order.deliveryAddress}${order.deliveryCity ? `, ${order.deliveryCity}` : ""}, ${order.deliveryState}`,
-    "",
-    "*Items*",
+    `*Payment:* ${PAYMENT_LABEL[order.paymentMethod]}`,
   ];
+
+  if (order.fulfilment === "pickup") {
+    lines.push(
+      `*Collection:* Store pickup — ${site.address.line1}, ${site.address.city}`,
+    );
+  } else {
+    const where = [order.deliveryAddress, order.deliveryCity, order.deliveryState]
+      .filter(Boolean)
+      .join(", ");
+    lines.push(`*Deliver to:* ${where}`);
+  }
+
+  lines.push("", "*Items*");
 
   for (const item of order.items) {
     lines.push(
@@ -39,13 +62,13 @@ export function buildOrderMessage(order: WhatsAppOrderMessage): string {
   lines.push(
     "",
     `Subtotal: ${formatNaira(order.subtotalKobo)}`,
-    `Delivery: ${formatNaira(order.deliveryFeeKobo)}`,
+    order.fulfilment === "pickup"
+      ? "Delivery: store pickup (free)"
+      : `Delivery: ${formatNaira(order.deliveryFeeKobo)}`,
     `*Total: ${formatNaira(order.totalKobo)}*`,
   );
 
-  if (order.notes) {
-    lines.push("", `*Note:* ${order.notes}`);
-  }
+  if (order.notes) lines.push("", `*Note:* ${order.notes}`);
 
   lines.push("", "Please confirm availability and payment details. Thank you.");
 
@@ -53,14 +76,14 @@ export function buildOrderMessage(order: WhatsAppOrderMessage): string {
 }
 
 /** wa.me deep link with the message pre-filled. */
-export function whatsAppLink(message: string, number = storeConfig.whatsappNumber): string {
+export function whatsAppLink(message: string, number = WHATSAPP_NUMBER): string {
   return `https://wa.me/${number.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
 }
 
 /** Generic "chat to us" link used in the header and footer. */
 export function whatsAppEnquiryLink(about?: string): string {
   const message = about
-    ? `Hello ${storeConfig.name}, I would like to ask about: ${about}`
-    : `Hello ${storeConfig.name}, I would like to make an enquiry.`;
+    ? `Hello ${site.name}, I would like to ask about: ${about}`
+    : `Hello ${site.name}, I would like to make an enquiry.`;
   return whatsAppLink(message);
 }

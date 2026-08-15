@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
 import { cancelOrder, updateOrderStatus } from "@/lib/orders";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import type { SellerApplicationRow } from "@/lib/db-types";
 import { nairaToKobo } from "@/lib/money";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -176,4 +177,81 @@ export async function adjustStock(
   revalidatePath("/admin/products");
   revalidatePath("/admin");
   return { ok: true };
+}
+
+/** Approve or reject a marketplace seller application. */
+export async function reviewSellerApplication(
+  applicationId: string,
+  status: "approved" | "rejected",
+  notes?: string,
+): Promise<ActionResult> {
+  await requireAdmin();
+
+  const parsed = z.enum(["approved", "rejected"]).safeParse(status);
+  if (!parsed.success) return { ok: false, error: "Unknown decision" };
+
+  const supabase = createSupabaseAdminClient();
+  const { data: application, error } = await supabase
+    .from("seller_applications")
+    .update({
+      status: parsed.data,
+      review_notes: notes?.trim() || null,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", applicationId)
+    .select("business_name, city, state, phone")
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!application) return { ok: false, error: "Application not found" };
+
+  // Approving creates the seller record, so approved sellers appear on the
+  // marketplace immediately rather than needing a second manual step.
+  if (parsed.data === "approved") {
+    const slug = application.business_name
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[^\p{L}\p{N}\s-]/gu, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .slice(0, 60);
+
+    const { error: sellerError } = await supabase.from("sellers").insert({
+      slug,
+      name: application.business_name,
+      city: application.city,
+      state: application.state,
+      phone: application.phone,
+      since: new Date().getFullYear(),
+      verified: true,
+      is_house: false,
+    });
+
+    // A duplicate slug means this seller already exists — not a failure.
+    if (sellerError && !sellerError.message.includes("duplicate key")) {
+      return { ok: false, error: sellerError.message };
+    }
+  }
+
+  revalidatePath("/admin/applications");
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Pending-first queue of marketplace applications. */
+export async function listSellerApplications(status = "pending") {
+  await requireAdmin();
+
+  const supabase = createSupabaseAdminClient();
+  let query = supabase
+    .from("seller_applications")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (status !== "all") query = query.eq("status", status);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as SellerApplicationRow[];
 }

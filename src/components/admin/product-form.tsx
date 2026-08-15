@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { saveProduct } from "@/actions/admin";
 import { koboToNaira } from "@/lib/money";
-import type { Category, Product } from "@/lib/types";
+import type { DbCategory, DbProduct } from "@/lib/db-types";
 
 /** Turn a product name into a URL slug as the user types. */
 function slugify(value: string): string {
@@ -24,8 +24,8 @@ export function ProductForm({
   categories,
   product,
 }: {
-  categories: Category[];
-  product?: Product;
+  categories: DbCategory[];
+  product?: DbProduct;
 }) {
   const router = useRouter();
   const [slug, setSlug] = useState(product?.slug ?? "");
@@ -55,7 +55,7 @@ export function ProductForm({
     <form onSubmit={handleSubmit} className="mt-6 max-w-3xl space-y-6">
       {product && <input type="hidden" name="id" value={product.id} />}
 
-      <fieldset className="rounded-xl border border-border bg-card p-5">
+      <fieldset className="rounded-xl border border-ink-200 bg-white p-5">
         <legend className="px-1 text-sm font-semibold">Details</legend>
 
         <div className="mt-2 grid gap-4 sm:grid-cols-2">
@@ -86,7 +86,7 @@ export function ProductForm({
               }}
               className={`${inputClass} font-mono`}
             />
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-ink-500">
               The page address: /product/{slug || "…"}
             </p>
           </div>
@@ -132,7 +132,7 @@ export function ProductForm({
         </div>
       </fieldset>
 
-      <fieldset className="rounded-xl border border-border bg-card p-5">
+      <fieldset className="rounded-xl border border-ink-200 bg-white p-5">
         <legend className="px-1 text-sm font-semibold">Price &amp; stock</legend>
 
         <div className="mt-2 grid gap-4 sm:grid-cols-3">
@@ -167,7 +167,7 @@ export function ProductForm({
               }
               className={inputClass}
             />
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-ink-500">
               Optional. Shows a discount badge.
             </p>
           </div>
@@ -210,7 +210,7 @@ export function ProductForm({
         </div>
       </fieldset>
 
-      <fieldset className="rounded-xl border border-border bg-card p-5">
+      <fieldset className="rounded-xl border border-ink-200 bg-white p-5">
         <legend className="px-1 text-sm font-semibold">Images &amp; visibility</legend>
 
         <div className="mt-2 space-y-4">
@@ -224,7 +224,7 @@ export function ProductForm({
               placeholder="One URL per line"
               className={`${inputClass} font-mono text-xs`}
             />
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-ink-500">
               One per line. Leave empty to use the generated placeholder tile.
             </p>
           </div>
@@ -234,7 +234,7 @@ export function ProductForm({
               type="checkbox"
               name="isActive"
               defaultChecked={product?.is_active ?? true}
-              className="size-4 rounded border-border"
+              className="size-4 rounded border-ink-200"
             />
             Visible in the store
           </label>
@@ -244,7 +244,7 @@ export function ProductForm({
               type="checkbox"
               name="isFeatured"
               defaultChecked={product?.is_featured ?? false}
-              className="size-4 rounded border-border"
+              className="size-4 rounded border-ink-200"
             />
             Feature on the home page
           </label>
@@ -254,7 +254,7 @@ export function ProductForm({
       {error && (
         <p
           role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
+          className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
         >
           {error}
         </p>
@@ -271,7 +271,7 @@ export function ProductForm({
         </button>
         <Link
           href="/admin/products"
-          className="rounded-lg border border-border px-6 py-3 text-sm font-medium transition hover:border-brand-400"
+          className="rounded-lg border border-ink-200 px-6 py-3 text-sm font-medium transition hover:border-brand-400"
         >
           Cancel
         </Link>
@@ -281,7 +281,7 @@ export function ProductForm({
 }
 
 const inputClass =
-  "mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500";
+  "mt-1.5 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500";
 
 function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
   return (

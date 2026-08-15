@@ -1,18 +1,21 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import type { Order, OrderItem, OrderWithItems } from "@/lib/types";
+import type { Order, OrderItem, OrderWithItems } from "@/lib/db-types";
 
 const ORDER_COLUMNS =
-  "id, reference, channel, status, customer_name, customer_phone, customer_email, delivery_address, delivery_state, delivery_city, subtotal_kobo, delivery_fee_kobo, total_kobo, paystack_reference, paid_at, notes, created_at, updated_at";
+  "id, reference, channel, status, fulfilment, payment_method, customer_name, customer_phone, customer_email, delivery_address, delivery_state, delivery_city, subtotal_kobo, delivery_fee_kobo, total_kobo, paystack_reference, paid_at, notes, created_at, updated_at";
 
 export interface PlaceOrderInput {
   channel: "paystack" | "whatsapp";
+  fulfilment: "pickup" | "delivery";
+  paymentMethod: "on-delivery" | "transfer" | "card";
   customerName: string;
   customerPhone: string;
   customerEmail: string | null;
-  deliveryAddress: string;
-  deliveryState: string;
+  /** Null for a pickup order — there is nowhere to deliver to. */
+  deliveryAddress: string | null;
+  deliveryState: string | null;
   deliveryCity: string | null;
   notes: string | null;
   items: { productId: string; quantity: number }[];
@@ -34,6 +37,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
 
   const { data, error } = await supabase.rpc("place_order", {
     p_channel: input.channel,
+    p_fulfilment: input.fulfilment,
+    p_payment_method: input.paymentMethod,
     p_customer_name: input.customerName,
     p_customer_phone: input.customerPhone,
     p_customer_email: input.customerEmail,

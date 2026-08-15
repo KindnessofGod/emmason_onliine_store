@@ -1,72 +1,52 @@
+import { categoryStyle } from "@/lib/category-style";
+
 /**
- * Product imagery.
- *
- * The seed catalogue ships without photos, so rather than render a broken
- * image or a grey box, we draw a deterministic branded tile from the product
- * name. Real photos uploaded through the admin panel replace it automatically.
+ * The catalogue ships without photography, so each product gets a deterministic
+ * branded tile instead of a broken image: the category gradient, the category
+ * glyph, and the wave motif from Emmason's print artwork. Swap this component
+ * for `next/image` once real product shots exist.
  */
-
-const TILE_HUES = [155, 200, 250, 25, 320, 95];
-
-function hueFor(seed: string): number {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = (hash * 31 + seed.charCodeAt(i)) % 100000;
-  }
-  return TILE_HUES[hash % TILE_HUES.length];
-}
-
-function initialsFor(name: string): string {
-  return name
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0]!.toUpperCase())
-    .join("");
-}
-
-interface ProductImageProps {
-  images: string[];
+export function ProductImage({
+  categorySlug,
+  name,
+  size = "card",
+  className = "",
+}: {
+  categorySlug: string;
   name: string;
+  size?: "card" | "hero" | "thumb";
   className?: string;
-  /** Render at a larger scale for the product detail page. */
-  large?: boolean;
-}
+}) {
+  const { glyph, gradient } = categoryStyle(categorySlug);
+  const [from, to] = gradient;
 
-export function ProductImage({ images, name, className = "", large }: ProductImageProps) {
-  const src = images?.[0];
-
-  if (src) {
-    return (
-      // Product photos are arbitrary uploaded URLs, so a plain img avoids
-      // having to whitelist every future storage host in next.config.
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={src}
-        alt={name}
-        loading="lazy"
-        className={`h-full w-full object-cover ${className}`}
-      />
-    );
-  }
-
-  const hue = hueFor(name);
+  const glyphSize =
+    size === "hero"
+      ? "text-[7rem] sm:text-[10rem]"
+      : size === "thumb"
+        ? "text-2xl"
+        : "text-5xl";
 
   return (
     <div
+      className={`relative isolate flex items-center justify-center overflow-hidden ${className}`}
+      style={{ background: `linear-gradient(145deg, ${from} 0%, ${to} 100%)` }}
       role="img"
       aria-label={name}
-      className={`flex h-full w-full items-center justify-center ${className}`}
-      style={{
-        background: `linear-gradient(140deg, oklch(0.93 0.05 ${hue}), oklch(0.84 0.09 ${hue}))`,
-      }}
     >
-      <span
-        className={`font-semibold tracking-tight ${large ? "text-6xl" : "text-2xl"}`}
-        style={{ color: `oklch(0.35 0.09 ${hue})` }}
+      {/* Wave band, lifted from the brand's flyer language. */}
+      <svg
+        viewBox="0 0 400 400"
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute inset-0 h-full w-full"
+        aria-hidden="true"
       >
-        {initialsFor(name)}
+        <path d="M0 300 Q100 250 200 285 T400 265 V400 H0 Z" fill="white" fillOpacity="0.14" />
+        <path d="M0 330 Q120 290 240 320 T400 300 V400 H0 Z" fill="white" fillOpacity="0.1" />
+        <circle cx="330" cy="80" r="90" fill="white" fillOpacity="0.07" />
+      </svg>
+      <span className={`relative select-none drop-shadow-sm ${glyphSize}`} aria-hidden="true">
+        {glyph}
       </span>
     </div>
   );

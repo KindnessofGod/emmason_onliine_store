@@ -1,102 +1,97 @@
-export type OrderChannel = "paystack" | "whatsapp";
+import type { Locale } from "./i18n/config";
 
-export type OrderStatus =
-  | "pending"
-  | "awaiting_payment"
-  | "paid"
-  | "processing"
-  | "shipped"
-  | "delivered"
-  | "cancelled"
-  | "refunded";
+/** A string that exists in every supported language. */
+export type LocalizedText = Record<Locale, string>;
+
+export type Condition = "new" | "uk-used" | "refurbished";
+
+export type FulfilmentMethod = "pickup" | "delivery";
+
+export type PaymentMethod = "on-delivery" | "transfer" | "card";
 
 export interface Category {
   id: string;
   slug: string;
+  name: LocalizedText;
+  tagline: LocalizedText;
+  /** Emoji used as the category glyph — keeps the build asset-free. */
+  glyph: string;
+  /** Two brand-family hex stops used for the category tile and image placeholders. */
+  gradient: [string, string];
+}
+
+export interface Seller {
+  id: string;
+  slug: string;
   name: string;
-  description: string | null;
-  image_url: string | null;
-  sort_order: number;
-  is_active: boolean;
+  /** Short public blurb shown on the seller page. */
+  bio: LocalizedText;
+  city: string;
+  state: string;
+  since: number;
+  verified: boolean;
+  /** Emmason itself, as opposed to a third-party marketplace seller. */
+  isHouse: boolean;
+  rating: number;
+  reviewCount: number;
 }
 
 export interface Product {
   id: string;
-  category_id: string;
   slug: string;
+  /** Brand/model names are not translated — "Nokia 150 4G" reads the same everywhere. */
   name: string;
-  brand: string | null;
-  description: string | null;
-  price_kobo: number;
-  compare_at_price_kobo: number | null;
+  brand: string;
+  categorySlug: string;
+  sellerId: string;
+  /** Denormalised from the seller row so product cards need no second lookup. */
+  sellerSlug: string;
+  sellerName: string;
+  /** Price in whole Naira. */
+  price: number;
+  /** Original price in whole Naira, when the item is discounted. */
+  compareAtPrice?: number;
+  condition: Condition;
   stock: number;
-  sku: string | null;
-  images: string[];
-  specs: Record<string, string>;
-  warranty_months: number | null;
-  is_active: boolean;
-  is_featured: boolean;
-  created_at: string;
-  updated_at: string;
+  warrantyMonths: number;
+  rating: number;
+  reviewCount: number;
+  featured: boolean;
+  /** ISO date — drives the "new arrivals" ordering. */
+  addedAt: string;
+  description: LocalizedText;
+  /** Spec rows. Labels are localized; values (e.g. "6.7 inch") are not. */
+  specs: Array<{ label: LocalizedText; value: string }>;
 }
 
-/** A product joined with its category, as returned by the catalogue queries. */
-export interface ProductWithCategory extends Product {
-  category: Pick<Category, "id" | "slug" | "name">;
-}
-
-export interface DeliveryZone {
-  id: string;
-  state: string;
-  fee_kobo: number;
-  eta_days: string;
-  is_active: boolean;
-}
-
-export interface OrderItem {
-  id: string;
-  order_id: string;
-  product_id: string | null;
-  name_snapshot: string;
-  image_snapshot: string | null;
-  unit_price_kobo: number;
-  quantity: number;
-  line_total_kobo: number;
-}
-
-export interface Order {
-  id: string;
-  reference: string;
-  channel: OrderChannel;
-  status: OrderStatus;
-  customer_name: string;
-  customer_phone: string;
-  customer_email: string | null;
-  delivery_address: string;
-  delivery_state: string;
-  delivery_city: string | null;
-  subtotal_kobo: number;
-  delivery_fee_kobo: number;
-  total_kobo: number;
-  paystack_reference: string | null;
-  paid_at: string | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface OrderWithItems extends Order {
-  items: OrderItem[];
-}
-
-/** What the browser sends at checkout. Deliberately carries no prices. */
 export interface CartLine {
   productId: string;
   quantity: number;
 }
 
-/** A cart line hydrated with catalogue data for display. */
-export interface CartLineDetail extends CartLine {
-  product: Product;
-  lineTotalKobo: number;
+export interface OrderDraft {
+  fullName: string;
+  phone: string;
+  email: string;
+  fulfilment: FulfilmentMethod;
+  street: string;
+  city: string;
+  state: string;
+  landmark: string;
+  payment: PaymentMethod;
+  notes: string;
+}
+
+export interface SellerApplication {
+  businessName: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  address: string;
+  city: string;
+  state: string;
+  nin: string;
+  categories: string[];
+  about: string;
+  acceptedTerms: boolean;
 }

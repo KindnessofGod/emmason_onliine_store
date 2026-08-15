@@ -1,78 +1,112 @@
 import Link from "next/link";
-import { discountPercent, formatNaira } from "@/lib/money";
+import { AddToCartButton } from "./add-to-cart-button";
+import { ProductImage } from "./product-image";
+import { ConditionBadge, Rating, SaleBadge } from "./ui";
+import { discountPercent, formatPrice } from "@/lib/format";
+import { href, interpolate, type Dictionary, type Locale } from "@/lib/i18n";
 import type { Product } from "@/lib/types";
-import { ProductImage } from "@/components/product-image";
-import { AddToCartButton } from "@/components/add-to-cart-button";
 
-export function ProductCard({ product }: { product: Product }) {
-  const discount = discountPercent(product.price_kobo, product.compare_at_price_kobo);
-  const lowStock = product.stock > 0 && product.stock <= 5;
+export function ProductCard({
+  product,
+  locale,
+  dict,
+}: {
+  product: Product;
+  locale: Locale;
+  dict: Dictionary;
+}) {
+  const seller = product.sellerSlug
+    ? { slug: product.sellerSlug, name: product.sellerName }
+    : null;
+  const discount = discountPercent(product.price, product.compareAtPrice);
+  const productHref = href(locale, `/product/${product.slug}`);
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition hover:shadow-lg">
-      <Link
-        href={`/product/${product.slug}`}
-        className="relative block aspect-square overflow-hidden"
-      >
+    <article className="group flex flex-col overflow-hidden rounded-card border border-ink-100 bg-white shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift">
+      <Link href={productHref} className="relative block" tabIndex={-1} aria-hidden="true">
         <ProductImage
-          images={product.images}
+          categorySlug={product.categorySlug}
           name={product.name}
-          className="transition duration-300 group-hover:scale-105"
+          className="aspect-[4/3] w-full"
         />
-
         {discount !== null && (
-          <span className="absolute left-2 top-2 rounded-full bg-accent-600 px-2 py-0.5 text-xs font-semibold text-white">
-            -{discount}%
+          <span className="absolute left-3 top-3">
+            <SaleBadge label={interpolate(dict.product.save, { percent: discount })} />
           </span>
         )}
-
-        {product.stock === 0 && (
-          <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-sm font-semibold text-white">
-            Out of stock
+        {product.stock > 0 && product.stock <= 5 && (
+          <span className="absolute bottom-3 left-3 rounded-full bg-ink-900/80 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">
+            {interpolate(dict.product.lowStock, { count: product.stock })}
           </span>
         )}
       </Link>
 
-      <div className="flex flex-1 flex-col gap-1 p-3">
-        {product.brand && (
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            {product.brand}
+      <div className="flex flex-1 flex-col p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <ConditionBadge condition={product.condition} dict={dict} />
+          <Rating value={product.rating} count={product.reviewCount} className="ml-auto" />
+        </div>
+
+        <h3 className="text-[15px] font-bold leading-snug text-ink-900">
+          <Link href={productHref} className="transition group-hover:text-brand-700">
+            {product.name}
+          </Link>
+        </h3>
+
+        {seller && (
+          <p className="mt-1 text-xs text-ink-500">
+            {dict.cart.soldByShort}{" "}
+            <Link
+              href={href(locale, `/seller/${seller.slug}`)}
+              className="font-semibold text-ink-600 transition hover:text-brand-700"
+            >
+              {seller.name}
+            </Link>
           </p>
         )}
 
-        <Link
-          href={`/product/${product.slug}`}
-          className="line-clamp-2 text-sm font-medium leading-snug hover:text-brand-600"
-        >
-          {product.name}
-        </Link>
-
-        <div className="mt-auto pt-2">
-          <div className="flex items-baseline gap-2">
-            <span className="text-base font-bold text-brand-700 dark:text-brand-300">
-              {formatNaira(product.price_kobo)}
+        <div className="mt-3 flex items-baseline gap-2">
+          <span className="text-lg font-extrabold text-ink-900">
+            {formatPrice(product.price, locale)}
+          </span>
+          {product.compareAtPrice && (
+            <span className="text-sm text-ink-400 line-through">
+              {formatPrice(product.compareAtPrice, locale)}
             </span>
-            {product.compare_at_price_kobo && (
-              <span className="text-xs text-muted-foreground line-through">
-                {formatNaira(product.compare_at_price_kobo)}
-              </span>
-            )}
-          </div>
-
-          {lowStock && (
-            <p className="mt-1 text-xs font-medium text-accent-600">
-              Only {product.stock} left
-            </p>
           )}
+        </div>
 
+        <div className="mt-4 pt-0">
           <AddToCartButton
             productId={product.id}
-            disabled={product.stock === 0}
-            className="mt-2 w-full"
-            compact
+            stock={product.stock}
+            size="sm"
+            labels={{
+              add: dict.product.addToCart,
+              added: dict.product.added,
+              outOfStock: dict.product.outOfStock,
+            }}
           />
         </div>
       </div>
+    </article>
+  );
+}
+
+export function ProductGrid({
+  products,
+  locale,
+  dict,
+}: {
+  products: Product[];
+  locale: Locale;
+  dict: Dictionary;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {products.map((product) => (
+        <ProductCard key={product.id} product={product} locale={locale} dict={dict} />
+      ))}
     </div>
   );
 }

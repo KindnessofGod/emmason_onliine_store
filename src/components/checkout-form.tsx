@@ -1,406 +1,576 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { CreditCard, Loader2, MessageCircle } from "lucide-react";
-import { useCart } from "@/lib/cart-context";
-import { hydrateCart, type HydratedCart } from "@/actions/cart";
+import { useEffect, useMemo, useState, useTransition, type FormEvent } from "react";
 import { submitCheckout } from "@/actions/checkout";
-import { formatNaira } from "@/lib/money";
-import type { DeliveryZone, OrderChannel } from "@/lib/types";
+import { useCart } from "./cart-provider";
+import { CheckCircleIcon, PinIcon, TruckIcon } from "./icons";
+import { ProductImage } from "./product-image";
+import { EmptyState } from "./ui";
+import { formatPrice } from "@/lib/format";
+import { href, interpolate, type Dictionary, type Locale } from "@/lib/i18n";
+import { isValidEmail, isValidNigerianPhone } from "@/lib/nigeria";
+import type { FulfilmentMethod, PaymentMethod, Product } from "@/lib/types";
+import { site } from "@/lib/site";
 
-const EMPTY: HydratedCart = {
-  lines: [],
-  subtotalKobo: 0,
-  removedCount: 0,
-  adjusted: [],
-};
+type FieldName = "fullName" | "phone" | "email" | "street" | "city" | "state";
 
-export function CheckoutForm({ zones }: { zones: DeliveryZone[] }) {
-  const router = useRouter();
+export function CheckoutForm({
+  locale,
+  dict,
+  catalogue,
+  states,
+  deliveryFee,
+  freeDeliveryThreshold,
+}: {
+  locale: Locale;
+  dict: Dictionary;
+  catalogue: Product[];
+  states: string[];
+  deliveryFee: number;
+  freeDeliveryThreshold: number;
+}) {
   const { lines, ready, clear } = useCart();
 
-  const [priced, setPriced] = useState<HydratedCart | null>(null);
-  const [channel, setChannel] = useState<OrderChannel>("paystack");
-  const [state, setState] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [fulfilment, setFulfilment] = useState<FulfilmentMethod>("delivery");
+  const [payment, setPayment] = useState<PaymentMethod>("on-delivery");
+  const [values, setValues] = useState({
+    fullName: "",
+    phone: "",
+    email: "",
+    street: "",
+    city: "",
+    state: "",
+    landmark: "",
+    notes: "",
+  });
+  const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
+  const [placed, setPlaced] = useState<{ reference: string; phone: string } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // The form is taller than the viewport, so without this the confirmation
+  // renders above the shopper's scroll position and looks like a blank page.
   useEffect(() => {
-    if (!ready || lines.length === 0) return;
+    if (placed) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [placed]);
 
-    let cancelled = false;
-    void hydrateCart(lines).then((result) => {
-      if (!cancelled) setPriced(result);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [lines, ready]);
-
-  const isEmpty = ready && lines.length === 0;
-  const cart = isEmpty ? EMPTY : priced;
-
-  const selectedZone = useMemo(
-    () => zones.find((zone) => zone.state === state) ?? null,
-    [zones, state],
+  const byId = useMemo(
+    () => new Map(catalogue.map((product) => [product.id, product])),
+    [catalogue],
+  );
+  const items = useMemo(
+    () =>
+      lines.flatMap((line) => {
+        const product = byId.get(line.productId);
+        return product ? [{ product, quantity: line.quantity }] : [];
+      }),
+    [lines, byId],
   );
 
-  const deliveryFee = selectedZone?.fee_kobo ?? 0;
-  const subtotal = cart?.subtotalKobo ?? 0;
-  const total = subtotal + deliveryFee;
+  const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const delivery =
+    fulfilment === "pickup" || subtotal >= freeDeliveryThreshold ? 0 : deliveryFee;
+  const total = subtotal + delivery;
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function set(field: keyof typeof values, value: string) {
+    setValues((current) => ({ ...current, [field]: value }));
+    if (field in errors) {
+      setErrors((current) => {
+        const next = { ...current };
+        delete next[field as FieldName];
+        return next;
+      });
+    }
+  }
+
+  function validate(): boolean {
+    const next: Partial<Record<FieldName, string>> = {};
+
+    if (!values.fullName.trim()) next.fullName = dict.checkout.required;
+    if (!values.phone.trim()) next.phone = dict.checkout.required;
+    else if (!isValidNigerianPhone(values.phone)) next.phone = dict.checkout.invalidPhone;
+    if (values.email.trim() && !isValidEmail(values.email))
+      next.email = dict.checkout.invalidEmail;
+
+    if (fulfilment === "delivery") {
+      if (!values.street.trim()) next.street = dict.checkout.required;
+      if (!values.city.trim()) next.city = dict.checkout.required;
+      if (!values.state) next.state = dict.checkout.required;
+    }
+
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
+  function submit(event: FormEvent) {
     event.preventDefault();
-    if (!cart) return;
+    if (!validate()) {
+      // Send focus to the first problem so the shopper is not hunting for it.
+      const firstError = document.querySelector<HTMLElement>('[aria-invalid="true"]');
+      firstError?.focus();
+      firstError?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
 
-    setError(null);
-    setFieldErrors({});
-
-    const formData = new FormData(event.currentTarget);
+    setSubmitError(null);
 
     startTransition(async () => {
       const result = await submitCheckout({
-        channel,
-        customerName: String(formData.get("customerName") ?? ""),
-        customerPhone: String(formData.get("customerPhone") ?? ""),
-        customerEmail: String(formData.get("customerEmail") ?? ""),
-        deliveryAddress: String(formData.get("deliveryAddress") ?? ""),
-        deliveryState: String(formData.get("deliveryState") ?? ""),
-        deliveryCity: String(formData.get("deliveryCity") ?? ""),
-        notes: String(formData.get("notes") ?? ""),
-        items: cart.lines.map((line) => ({
-          productId: line.productId,
-          quantity: line.quantity,
+        fulfilment,
+        payment,
+        fullName: values.fullName,
+        phone: values.phone,
+        email: values.email,
+        street: values.street,
+        city: values.city,
+        state: values.state,
+        landmark: values.landmark,
+        notes: values.notes,
+        items: items.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
         })),
       });
 
       if (!result.ok) {
-        setError(result.error);
-        setFieldErrors(result.fieldErrors ?? {});
+        setSubmitError(result.error);
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
 
-      // The order now exists server-side, so the local cart has served its
-      // purpose either way.
+      // The order exists server-side now, so the local cart has done its job.
       clear();
 
-      if (result.channel === "paystack") {
+      if (result.kind === "paystack") {
         window.location.href = result.redirectUrl;
-      } else {
-        // Open WhatsApp in a new tab, then show the confirmation page here.
-        window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
-        router.push(`/order/${result.reference}`);
+        return;
       }
+
+      // Transfer and pay-on-delivery are settled by hand: open the pre-filled
+      // WhatsApp thread, then show the confirmation here.
+      if (result.kind === "whatsapp") {
+        window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
+      }
+
+      setPlaced({ reference: result.reference, phone: values.phone });
     });
   }
 
-  if (!cart) {
+  if (placed) {
     return (
-      <div className="mt-8 h-64 animate-pulse rounded-xl border border-border bg-card" />
+      <div className="mx-auto max-w-xl text-center">
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-100">
+          <CheckCircleIcon className="h-9 w-9 text-brand-700" />
+        </span>
+        <h2 className="mt-6 text-2xl font-extrabold text-ink-900">
+          {dict.checkout.successTitle}
+        </h2>
+        <p className="mt-3 leading-relaxed text-ink-600">
+          {interpolate(dict.checkout.successBody, { phone: placed.phone })}
+        </p>
+        <p className="mt-6 inline-block rounded-xl bg-ink-50 px-5 py-3 text-sm">
+          <span className="text-ink-500">{dict.checkout.orderNumber}: </span>
+          <strong className="font-extrabold tracking-wide text-ink-900">{placed.reference}</strong>
+        </p>
+        <div className="mt-8">
+          <Link
+            href={href(locale, "/shop")}
+            className="inline-block rounded-xl bg-brand-600 px-6 py-3.5 font-bold text-white transition hover:bg-brand-700"
+          >
+            {dict.checkout.backToShop}
+          </Link>
+        </div>
+      </div>
     );
   }
 
-  if (cart.lines.length === 0) {
+  if (!ready) {
+    return <div className="h-96 animate-pulse rounded-card bg-ink-100" aria-hidden="true" />;
+  }
+
+  if (items.length === 0) {
     return (
-      <div className="mt-8 rounded-xl border border-border bg-card px-6 py-16 text-center">
-        <p className="font-medium">There is nothing to check out.</p>
-        <Link
-          href="/"
-          className="mt-5 inline-block rounded-lg bg-accent-500 px-6 py-3 text-sm font-semibold text-brand-900 transition hover:bg-accent-400"
-        >
-          Start shopping
-        </Link>
-      </div>
+      <EmptyState
+        title={dict.cart.empty}
+        action={
+          <Link
+            href={href(locale, "/shop")}
+            className="inline-block rounded-xl bg-brand-600 px-6 py-3 font-bold text-white transition hover:bg-brand-700"
+          >
+            {dict.cart.emptyCta}
+          </Link>
+        }
+      />
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 grid gap-8 lg:grid-cols-[1fr_20rem]">
-      <div className="space-y-6">
+    <form onSubmit={submit} noValidate className="grid gap-8 lg:grid-cols-[1fr_360px]">
+      <div className="space-y-8">
         {/* Contact */}
-        <fieldset className="rounded-xl border border-border bg-card p-5">
-          <legend className="px-1 text-sm font-semibold">Your details</legend>
-
-          <div className="mt-2 grid gap-4 sm:grid-cols-2">
+        <section className="rounded-card border border-ink-100 bg-white p-6 shadow-soft">
+          <h2 className="text-lg font-extrabold text-ink-900">{dict.checkout.contactSection}</h2>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Field
-              label="Full name"
-              name="customerName"
-              required
+              id="fullName"
+              label={dict.checkout.fullName}
+              value={values.fullName}
+              error={errors.fullName}
+              onChange={(v) => set("fullName", v)}
               autoComplete="name"
-              errors={fieldErrors.customerName}
+              required
             />
             <Field
-              label="Phone number"
-              name="customerPhone"
+              id="phone"
+              label={dict.checkout.phone}
+              value={values.phone}
+              error={errors.phone}
+              onChange={(v) => set("phone", v)}
               type="tel"
-              required
-              placeholder="0801 234 5678"
               autoComplete="tel"
-              errors={fieldErrors.customerPhone}
+              placeholder="0803 863 0197"
+              required
             />
             <div className="sm:col-span-2">
               <Field
-                label={
-                  channel === "paystack" ? "Email address" : "Email address (optional)"
-                }
-                name="customerEmail"
+                id="email"
+                label={`${dict.checkout.email} (${dict.common.optional})`}
+                value={values.email}
+                error={errors.email}
+                onChange={(v) => set("email", v)}
                 type="email"
-                required={channel === "paystack"}
                 autoComplete="email"
-                hint={
-                  channel === "paystack"
-                    ? "Your payment receipt is sent here."
-                    : undefined
-                }
-                errors={fieldErrors.customerEmail}
               />
             </div>
           </div>
-        </fieldset>
+        </section>
 
-        {/* Delivery */}
-        <fieldset className="rounded-xl border border-border bg-card p-5">
-          <legend className="px-1 text-sm font-semibold">Delivery</legend>
+        {/* Fulfilment */}
+        <section className="rounded-card border border-ink-100 bg-white p-6 shadow-soft">
+          <h2 className="text-lg font-extrabold text-ink-900">
+            {dict.checkout.fulfilmentSection}
+          </h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <OptionCard
+              name="fulfilment"
+              checked={fulfilment === "delivery"}
+              onChange={() => setFulfilment("delivery")}
+              icon={<TruckIcon className="h-5 w-5" />}
+              title={dict.checkout.deliveryOption}
+              body={dict.checkout.deliveryBody}
+              meta={
+                subtotal >= freeDeliveryThreshold
+                  ? dict.cart.deliveryFree
+                  : formatPrice(deliveryFee, locale)
+              }
+            />
+            <OptionCard
+              name="fulfilment"
+              checked={fulfilment === "pickup"}
+              onChange={() => setFulfilment("pickup")}
+              icon={<PinIcon className="h-5 w-5" />}
+              title={dict.checkout.pickup}
+              body={dict.checkout.pickupBody}
+              meta={dict.cart.deliveryFree}
+            />
+          </div>
 
-          <div className="mt-2 grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
+          {fulfilment === "delivery" && (
+            <div className="mt-6 border-t border-ink-100 pt-6">
+              <h3 className="text-sm font-bold text-ink-900">{dict.checkout.addressSection}</h3>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Field
+                    id="street"
+                    label={dict.checkout.street}
+                    value={values.street}
+                    error={errors.street}
+                    onChange={(v) => set("street", v)}
+                    autoComplete="street-address"
+                    required
+                  />
+                </div>
+                <Field
+                  id="city"
+                  label={dict.checkout.city}
+                  value={values.city}
+                  error={errors.city}
+                  onChange={(v) => set("city", v)}
+                  autoComplete="address-level2"
+                  required
+                />
+                <div>
+                  <label htmlFor="state" className="field-label">
+                    {dict.checkout.state} <span className="text-flash-500">*</span>
+                  </label>
+                  <select
+                    id="state"
+                    value={values.state}
+                    onChange={(e) => set("state", e.target.value)}
+                    aria-invalid={Boolean(errors.state)}
+                    aria-describedby={errors.state ? "state-error" : undefined}
+                    className="field"
+                    autoComplete="address-level1"
+                  >
+                    <option value="">{dict.checkout.selectState}</option>
+                    {states.map((state) => (
+                      <option key={state} value={state}>
+                        {state}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.state && (
+                    <p id="state-error" className="mt-1.5 text-xs font-medium text-flash-500">
+                      {errors.state}
+                    </p>
+                  )}
+                </div>
+                <div className="sm:col-span-2">
+                  <Field
+                    id="landmark"
+                    label={dict.checkout.landmark}
+                    value={values.landmark}
+                    onChange={(v) => set("landmark", v)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {fulfilment === "pickup" && (
+            <address className="mt-6 flex gap-3 rounded-xl bg-brand-50 p-4 not-italic">
+              <PinIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" />
+              <span className="text-sm leading-relaxed text-brand-900">
+                <strong className="font-bold">{site.address.line1}</strong>
+                <br />
+                {site.address.line2}
+                <br />
+                {site.address.city}, {site.address.state} · {dict.footer.hours}
+              </span>
+            </address>
+          )}
+        </section>
+
+        {/* Payment */}
+        <section className="rounded-card border border-ink-100 bg-white p-6 shadow-soft">
+          <h2 className="text-lg font-extrabold text-ink-900">{dict.checkout.paymentSection}</h2>
+          <div className="mt-5 space-y-3">
+            {(
+              [
+                {
+                  value: "on-delivery",
+                  title: dict.checkout.payOnDelivery,
+                  body: dict.checkout.payOnDeliveryBody,
+                },
+                {
+                  value: "transfer",
+                  title: dict.checkout.payTransfer,
+                  body: dict.checkout.payTransferBody,
+                },
+                {
+                  value: "card",
+                  title: dict.checkout.payCard,
+                  body: dict.checkout.payCardBody,
+                },
+              ] as Array<{ value: PaymentMethod; title: string; body: string }>
+            ).map((option) => (
               <label
-                htmlFor="deliveryAddress"
-                className="block text-sm font-medium"
+                key={option.value}
+                className={`flex cursor-pointer gap-3 rounded-xl border p-4 transition ${
+                  payment === option.value
+                    ? "border-brand-500 bg-brand-50/60 ring-1 ring-brand-500"
+                    : "border-ink-200 hover:bg-ink-50"
+                }`}
               >
-                Street address <span className="text-red-600">*</span>
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={payment === option.value}
+                  onChange={() => setPayment(option.value)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
+                />
+                <span>
+                  <span className="block text-sm font-bold text-ink-900">{option.title}</span>
+                  <span className="mt-0.5 block text-xs text-ink-500">{option.body}</span>
+                </span>
               </label>
-              <textarea
-                id="deliveryAddress"
-                name="deliveryAddress"
-                required
-                rows={3}
-                autoComplete="street-address"
-                placeholder="House number, street, area, nearest landmark"
-                className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              />
-              {fieldErrors.deliveryAddress?.[0] && (
-                <p className="mt-1 text-xs text-red-600">
-                  {fieldErrors.deliveryAddress[0]}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="deliveryState" className="block text-sm font-medium">
-                State <span className="text-red-600">*</span>
-              </label>
-              <select
-                id="deliveryState"
-                name="deliveryState"
-                required
-                value={state}
-                onChange={(event) => setState(event.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              >
-                <option value="">Select a state…</option>
-                {zones.map((zone) => (
-                  <option key={zone.id} value={zone.state}>
-                    {zone.state} — {formatNaira(zone.fee_kobo)}
-                  </option>
-                ))}
-              </select>
-              {selectedZone && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Arrives in {selectedZone.eta_days}.
-                </p>
-              )}
-            </div>
-
-            <Field
-              label="Town or city"
-              name="deliveryCity"
-              autoComplete="address-level2"
-              errors={fieldErrors.deliveryCity}
-            />
-
-            <div className="sm:col-span-2">
-              <label htmlFor="notes" className="block text-sm font-medium">
-                Delivery note <span className="text-muted-foreground">(optional)</span>
-              </label>
-              <textarea
-                id="notes"
-                name="notes"
-                rows={2}
-                placeholder="Anything the dispatch rider should know"
-                className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              />
-            </div>
+            ))}
           </div>
-        </fieldset>
 
-        {/* Payment method */}
-        <fieldset className="rounded-xl border border-border bg-card p-5">
-          <legend className="px-1 text-sm font-semibold">How would you like to pay?</legend>
-
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <ChannelOption
-              selected={channel === "paystack"}
-              onSelect={() => setChannel("paystack")}
-              icon={<CreditCard className="size-5" aria-hidden />}
-              title="Pay now with Paystack"
-              body="Card, bank transfer or USSD. Your order is confirmed immediately."
-            />
-            <ChannelOption
-              selected={channel === "whatsapp"}
-              onSelect={() => setChannel("whatsapp")}
-              icon={<MessageCircle className="size-5" aria-hidden />}
-              title="Order on WhatsApp"
-              body="We save your order and open a chat with the details filled in. Pay on delivery or by transfer."
+          <div className="mt-6">
+            <label htmlFor="notes" className="field-label">
+              {dict.checkout.notes}
+            </label>
+            <textarea
+              id="notes"
+              rows={3}
+              value={values.notes}
+              onChange={(e) => set("notes", e.target.value)}
+              className="field resize-y"
             />
           </div>
-        </fieldset>
+        </section>
       </div>
 
       {/* Summary */}
-      <aside className="h-fit rounded-xl border border-border bg-card p-5 lg:sticky lg:top-32">
-        <h2 className="font-semibold">Order summary</h2>
+      <aside className="lg:sticky lg:top-32 lg:self-start">
+        <div className="rounded-card border border-ink-100 bg-white p-6 shadow-soft">
+          <h2 className="text-lg font-extrabold text-ink-900">{dict.checkout.summary}</h2>
 
-        <ul className="mt-4 space-y-2 text-sm">
-          {cart.lines.map((line) => (
-            <li key={line.productId} className="flex justify-between gap-3">
-              <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                {line.quantity} × {line.product.name}
-              </span>
-              <span className="shrink-0 font-medium">
-                {formatNaira(line.lineTotalKobo)}
-              </span>
-            </li>
-          ))}
-        </ul>
+          <ul className="mt-5 space-y-3 border-b border-ink-100 pb-5">
+            {items.map(({ product, quantity }) => (
+              <li key={product.id} className="flex gap-3">
+                <div className="relative shrink-0 overflow-hidden rounded-lg">
+                  <ProductImage
+                    categorySlug={product.categorySlug}
+                    name={product.name}
+                    size="thumb"
+                    className="h-14 w-14"
+                  />
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink-900 px-1 text-[11px] font-bold text-white">
+                    {quantity}
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-ink-900">{product.name}</p>
+                  <p className="mt-0.5 text-xs text-ink-500">
+                    {formatPrice(product.price, locale)}
+                  </p>
+                </div>
+                <span className="text-sm font-bold text-ink-900">
+                  {formatPrice(product.price * quantity, locale)}
+                </span>
+              </li>
+            ))}
+          </ul>
 
-        <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span className="font-medium">{formatNaira(subtotal)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Delivery</span>
-            <span className="font-medium">
-              {selectedZone ? formatNaira(deliveryFee) : "Select a state"}
+          <dl className="mt-5 space-y-3 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-ink-600">{dict.cart.subtotal}</dt>
+              <dd className="font-bold text-ink-900">{formatPrice(subtotal, locale)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-ink-600">
+                {fulfilment === "pickup" ? dict.checkout.pickup : dict.cart.delivery}
+              </dt>
+              <dd className="font-bold text-ink-900">
+                {delivery === 0 ? dict.cart.deliveryFree : formatPrice(delivery, locale)}
+              </dd>
+            </div>
+          </dl>
+
+          <div className="mt-5 flex items-baseline justify-between border-t border-ink-100 pt-5">
+            <span className="font-bold text-ink-900">{dict.cart.total}</span>
+            <span className="text-2xl font-extrabold text-ink-900">
+              {formatPrice(total, locale)}
             </span>
           </div>
-          <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
-            <span>Total</span>
-            <span className="text-brand-700 dark:text-brand-300">
-              {formatNaira(total)}
-            </span>
-          </div>
-        </div>
 
-        {error && (
-          <p
-            role="alert"
-            className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
+          <button
+            type="submit"
+            disabled={pending}
+            className="mt-6 w-full rounded-xl bg-brand-600 py-3.5 font-bold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {error}
-          </p>
-        )}
+            {pending ? `${dict.checkout.placeOrder}…` : dict.checkout.placeOrder}
+          </button>
 
-        <button
-          type="submit"
-          disabled={pending || !selectedZone}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-accent-500 px-6 py-3 text-sm font-semibold text-brand-900 transition hover:bg-accent-400 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
-          {pending
-            ? "Placing order…"
-            : channel === "paystack"
-              ? `Pay ${formatNaira(total)}`
-              : "Send order on WhatsApp"}
-        </button>
-
-        {!selectedZone && (
-          <p className="mt-2 text-center text-xs text-muted-foreground">
-            Choose your state to see the delivery fee.
-          </p>
-        )}
+          {submitError && (
+            <p
+              role="alert"
+              className="mt-3 rounded-xl bg-flash-500/10 px-4 py-3 text-sm font-semibold text-flash-600"
+            >
+              {submitError}
+            </p>
+          )}
+        </div>
       </aside>
     </form>
   );
 }
 
 function Field({
+  id,
   label,
-  name,
+  value,
+  onChange,
+  error,
   type = "text",
-  required,
-  placeholder,
   autoComplete,
-  hint,
-  errors,
+  placeholder,
+  required,
 }: {
+  id: string;
   label: string;
-  name: string;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
   type?: string;
-  required?: boolean;
-  placeholder?: string;
   autoComplete?: string;
-  hint?: string;
-  errors?: string[];
+  placeholder?: string;
+  required?: boolean;
 }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium">
-        {label} {required && <span className="text-red-600">*</span>}
+      <label htmlFor={id} className="field-label">
+        {label} {required && <span className="text-flash-500">*</span>}
       </label>
       <input
-        id={name}
-        name={name}
+        id={id}
         type={type}
-        required={required}
-        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : undefined}
         autoComplete={autoComplete}
-        className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        placeholder={placeholder}
+        className="field"
       />
-      {hint && !errors?.[0] && (
-        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+      {error && (
+        <p id={`${id}-error`} className="mt-1.5 text-xs font-medium text-flash-500">
+          {error}
+        </p>
       )}
-      {errors?.[0] && <p className="mt-1 text-xs text-red-600">{errors[0]}</p>}
     </div>
   );
 }
 
-function ChannelOption({
-  selected,
-  onSelect,
+function OptionCard({
+  name,
+  checked,
+  onChange,
   icon,
   title,
   body,
+  meta,
 }: {
-  selected: boolean;
-  onSelect: () => void;
+  name: string;
+  checked: boolean;
+  onChange: () => void;
   icon: React.ReactNode;
   title: string;
   body: string;
+  meta: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      className={`rounded-xl border p-4 text-left transition ${
-        selected
-          ? "border-brand-600 bg-brand-50 ring-1 ring-brand-600 dark:bg-brand-900"
-          : "border-border hover:border-brand-400"
+    <label
+      className={`flex cursor-pointer flex-col rounded-xl border p-4 transition ${
+        checked ? "border-brand-500 bg-brand-50/60 ring-1 ring-brand-500" : "border-ink-200 hover:bg-ink-50"
       }`}
     >
-      <span className="flex items-center gap-2 font-medium">
-        {icon}
-        {title}
+      <span className="flex items-center gap-2.5">
+        <input
+          type="radio"
+          name={name}
+          checked={checked}
+          onChange={onChange}
+          className="h-4 w-4 accent-brand-600"
+        />
+        <span className="text-brand-700">{icon}</span>
+        <span className="text-sm font-bold text-ink-900">{title}</span>
+        <span className="ml-auto text-sm font-bold text-brand-700">{meta}</span>
       </span>
-      <span className="mt-1.5 block text-xs leading-relaxed text-muted-foreground">
-        {body}
-      </span>
-    </button>
+      <span className="mt-2 pl-[1.625rem] text-xs leading-relaxed text-ink-500">{body}</span>
+    </label>
   );
 }

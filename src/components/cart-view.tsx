@@ -1,189 +1,182 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Minus, Plus, Trash2 } from "lucide-react";
-import { useCart } from "@/lib/cart-context";
-import { hydrateCart, type HydratedCart } from "@/actions/cart";
-import { formatNaira } from "@/lib/money";
-import { ProductImage } from "@/components/product-image";
+import { useMemo } from "react";
+import { QuantityStepper } from "./add-to-cart-button";
+import { useCart } from "./cart-provider";
+import { TrashIcon, TruckIcon } from "./icons";
+import { ProductImage } from "./product-image";
+import { EmptyState } from "./ui";
+import { formatPrice } from "@/lib/format";
+import { href, pluralize, type Dictionary, type Locale } from "@/lib/i18n";
+import type { Product } from "@/lib/types";
 
-const EMPTY: HydratedCart = {
-  lines: [],
-  subtotalKobo: 0,
-  removedCount: 0,
-  adjusted: [],
-};
-
-export function CartView() {
+export function CartView({
+  locale,
+  dict,
+  catalogue,
+  deliveryFee,
+  freeDeliveryThreshold,
+}: {
+  locale: Locale;
+  dict: Dictionary;
+  catalogue: Product[];
+  deliveryFee: number;
+  freeDeliveryThreshold: number;
+}) {
   const { lines, ready, setQuantity, remove } = useCart();
-  const [priced, setPriced] = useState<HydratedCart | null>(null);
 
-  // Re-price from the server on every change: stock and prices may have moved
-  // since the item was added.
-  useEffect(() => {
-    if (!ready || lines.length === 0) return;
+  const byId = useMemo(
+    () => new Map(catalogue.map((product) => [product.id, product])),
+    [catalogue],
+  );
 
-    let cancelled = false;
-    void hydrateCart(lines).then((result) => {
-      if (!cancelled) setPriced(result);
-    });
+  const items = useMemo(
+    () =>
+      lines.flatMap((line) => {
+        const product = byId.get(line.productId);
+        return product ? [{ product, quantity: line.quantity }] : [];
+      }),
+    [lines, byId],
+  );
 
-    return () => {
-      cancelled = true;
-    };
-  }, [lines, ready]);
+  const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const qualifiesFree = subtotal >= freeDeliveryThreshold;
+  const delivery = items.length === 0 ? 0 : qualifiesFree ? 0 : deliveryFee;
 
-  const isEmpty = ready && lines.length === 0;
-  const cart = isEmpty ? EMPTY : priced;
-  const loading = !ready || cart === null;
-
-  if (loading) {
-    return (
-      <div className="mt-8 space-y-3" aria-busy="true">
-        {[0, 1, 2].map((index) => (
-          <div
-            key={index}
-            className="h-24 animate-pulse rounded-xl border border-border bg-card"
-          />
-        ))}
-      </div>
-    );
+  if (!ready) {
+    return <div className="h-64 animate-pulse rounded-card bg-ink-100" aria-hidden="true" />;
   }
 
-  if (cart.lines.length === 0) {
+  if (items.length === 0) {
     return (
-      <div className="mt-8 rounded-xl border border-border bg-card px-6 py-16 text-center">
-        <p className="font-medium">Your cart is empty.</p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Browse the categories and add something you like.
-        </p>
-        <Link
-          href="/"
-          className="mt-5 inline-block rounded-lg bg-accent-500 px-6 py-3 text-sm font-semibold text-brand-900 transition hover:bg-accent-400"
-        >
-          Start shopping
-        </Link>
-      </div>
+      <EmptyState
+        title={dict.cart.empty}
+        action={
+          <Link
+            href={href(locale, "/shop")}
+            className="inline-block rounded-xl bg-brand-600 px-6 py-3 font-bold text-white transition hover:bg-brand-700"
+          >
+            {dict.cart.emptyCta}
+          </Link>
+        }
+      />
     );
   }
 
   return (
-    <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_20rem]">
-      <div className="space-y-3">
-        {(cart.removedCount > 0 || cart.adjusted.length > 0) && (
-          <div className="flex gap-3 rounded-xl border border-accent-400 bg-accent-400/10 p-4 text-sm">
-            <AlertTriangle className="size-5 shrink-0 text-accent-600" aria-hidden />
-            <div>
-              {cart.removedCount > 0 && (
-                <p>
-                  {cart.removedCount}{" "}
-                  {cart.removedCount === 1 ? "item is" : "items are"} no longer
-                  available and {cart.removedCount === 1 ? "was" : "were"} removed.
-                </p>
-              )}
-              {cart.adjusted.map((item) => (
-                <p key={item.name}>
-                  Only {item.available} of {item.name} left — quantity reduced from{" "}
-                  {item.requested}.
-                </p>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {cart.lines.map((line) => (
-          <div
-            key={line.productId}
-            className="flex gap-4 rounded-xl border border-border bg-card p-3"
+    <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+      <ul className="space-y-3">
+        {items.map(({ product, quantity }) => (
+          <li
+            key={product.id}
+            className="flex gap-4 rounded-card border border-ink-100 bg-white p-4 shadow-soft"
           >
             <Link
-              href={`/product/${line.product.slug}`}
-              className="size-24 shrink-0 overflow-hidden rounded-lg"
+              href={href(locale, `/product/${product.slug}`)}
+              className="shrink-0 overflow-hidden rounded-xl"
             >
-              <ProductImage images={line.product.images} name={line.product.name} />
+              <ProductImage
+                categorySlug={product.categorySlug}
+                name={product.name}
+                size="thumb"
+                className="h-24 w-24"
+              />
             </Link>
 
             <div className="flex min-w-0 flex-1 flex-col">
-              <Link
-                href={`/product/${line.product.slug}`}
-                className="line-clamp-2 text-sm font-medium hover:text-brand-600"
-              >
-                {line.product.name}
-              </Link>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {formatNaira(line.product.price_kobo)} each
-              </p>
-
-              <div className="mt-auto flex flex-wrap items-center gap-3 pt-2">
-                <div className="flex items-center rounded-lg border border-border">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(line.productId, line.quantity - 1)}
-                    aria-label={`Decrease quantity of ${line.product.name}`}
-                    className="p-2 transition hover:bg-brand-50 dark:hover:bg-brand-900"
-                  >
-                    <Minus className="size-3.5" aria-hidden />
-                  </button>
-                  <span className="w-9 text-center text-sm font-medium">
-                    {line.quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(line.productId, line.quantity + 1)}
-                    disabled={line.quantity >= line.product.stock}
-                    aria-label={`Increase quantity of ${line.product.name}`}
-                    className="p-2 transition hover:bg-brand-50 disabled:opacity-30 dark:hover:bg-brand-900"
-                  >
-                    <Plus className="size-3.5" aria-hidden />
-                  </button>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="truncate text-[15px] font-bold text-ink-900">
+                    <Link
+                      href={href(locale, `/product/${product.slug}`)}
+                      className="transition hover:text-brand-700"
+                    >
+                      {product.name}
+                    </Link>
+                  </h2>
+                  <p className="mt-0.5 text-xs text-ink-500">{product.brand}</p>
                 </div>
-
                 <button
                   type="button"
-                  onClick={() => remove(line.productId)}
-                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-red-600"
+                  onClick={() => remove(product.id)}
+                  aria-label={`${dict.cart.remove} — ${product.name}`}
+                  className="shrink-0 rounded-lg p-2 text-ink-400 transition hover:bg-flash-500/10 hover:text-flash-500"
                 >
-                  <Trash2 className="size-3.5" aria-hidden />
-                  Remove
+                  <TrashIcon className="h-[18px] w-[18px]" />
                 </button>
               </div>
+
+              <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-3">
+                <QuantityStepper
+                  value={quantity}
+                  max={product.stock}
+                  onChange={(next) => setQuantity(product.id, next)}
+                  label={dict.product.quantity}
+                />
+                <span className="text-lg font-extrabold text-ink-900">
+                  {formatPrice(product.price * quantity, locale)}
+                </span>
+              </div>
             </div>
-
-            <p className="shrink-0 text-sm font-bold text-brand-700 dark:text-brand-300">
-              {formatNaira(line.lineTotalKobo)}
-            </p>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
 
-      <aside className="h-fit rounded-xl border border-border bg-card p-5 lg:sticky lg:top-32">
-        <h2 className="font-semibold">Order summary</h2>
+      <aside className="lg:sticky lg:top-32 lg:self-start">
+        <div className="rounded-card border border-ink-100 bg-white p-6 shadow-soft">
+          <h2 className="text-lg font-extrabold text-ink-900">{dict.checkout.summary}</h2>
 
-        <div className="mt-4 space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span className="font-medium">{formatNaira(cart.subtotalKobo)}</span>
+          <dl className="mt-5 space-y-3 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-ink-600">
+                {dict.cart.subtotal}
+                <span className="text-ink-400">
+                  {" "}
+                  ·{" "}
+                  {pluralize(items.reduce((n, i) => n + i.quantity, 0), dict.cart.itemsOne, dict.cart.items)}
+                </span>
+              </dt>
+              <dd className="font-bold text-ink-900">{formatPrice(subtotal, locale)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-ink-600">{dict.cart.delivery}</dt>
+              <dd className="font-bold text-ink-900">
+                {delivery === 0 ? dict.cart.deliveryFree : formatPrice(delivery, locale)}
+              </dd>
+            </div>
+          </dl>
+
+          {!qualifiesFree && (
+            <p className="mt-4 flex gap-2 rounded-lg bg-brand-50 p-3 text-xs text-brand-800">
+              <TruckIcon className="h-4 w-4 shrink-0" />
+              <span>
+                {formatPrice(freeDeliveryThreshold - subtotal, locale)} → {dict.cart.deliveryFree}{" "}
+                {dict.cart.delivery.toLowerCase()}
+              </span>
+            </p>
+          )}
+
+          <div className="mt-5 flex items-baseline justify-between border-t border-ink-100 pt-5">
+            <span className="font-bold text-ink-900">{dict.cart.total}</span>
+            <span className="text-2xl font-extrabold text-ink-900">
+              {formatPrice(subtotal + delivery, locale)}
+            </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Delivery</span>
-            <span className="text-muted-foreground">Calculated at checkout</span>
-          </div>
+
+          <Link
+            href={href(locale, "/checkout")}
+            className="mt-6 block rounded-xl bg-brand-600 py-3.5 text-center font-bold text-white transition hover:bg-brand-700"
+          >
+            {dict.cart.checkout}
+          </Link>
+          <Link
+            href={href(locale, "/shop")}
+            className="mt-3 block py-2 text-center text-sm font-semibold text-ink-600 transition hover:text-brand-700"
+          >
+            {dict.cart.continueShopping}
+          </Link>
         </div>
-
-        <Link
-          href="/checkout"
-          className="mt-5 block rounded-lg bg-accent-500 px-6 py-3 text-center text-sm font-semibold text-brand-900 transition hover:bg-accent-400"
-        >
-          Proceed to checkout
-        </Link>
-
-        <Link
-          href="/"
-          className="mt-3 block text-center text-sm text-muted-foreground transition hover:text-brand-600"
-        >
-          Continue shopping
-        </Link>
       </aside>
     </div>
   );
