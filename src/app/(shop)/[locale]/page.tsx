@@ -110,6 +110,7 @@ export default async function HomePage({
                   <ProductImage
                     categorySlug={product.categorySlug}
                     name={product.name}
+                    src={product.images[0]}
                     className="aspect-square w-full"
                   />
                 </Link>

@@ -425,6 +425,7 @@ export function CheckoutForm({
                   <ProductImage
                     categorySlug={product.categorySlug}
                     name={product.name}
+                    src={product.images[0]}
                     size="thumb"
                     className="h-14 w-14"
                   />

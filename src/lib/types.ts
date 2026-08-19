@@ -62,6 +62,8 @@ export interface Product {
   description: LocalizedText;
   /** Spec rows. Labels are localized; values (e.g. "6.7 inch") are not. */
   specs: Array<{ label: LocalizedText; value: string }>;
+  /** Public photo URLs in display order. Empty until real photography is uploaded. */
+  images: string[];
 }
 
 export interface CartLine {

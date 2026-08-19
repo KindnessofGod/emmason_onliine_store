@@ -79,6 +79,7 @@ export function CartView({
               <ProductImage
                 categorySlug={product.categorySlug}
                 name={product.name}
+                src={product.images[0]}
                 size="thumb"
                 className="h-24 w-24"
               />

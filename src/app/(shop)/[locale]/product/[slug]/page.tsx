@@ -133,8 +133,10 @@ export default async function ProductPage({
             <ProductImage
               categorySlug={product.categorySlug}
               name={product.name}
+              src={product.images[0]}
               size="hero"
               className="aspect-square w-full"
+              priority
             />
             {discount !== null && (
               <span className="absolute left-4 top-4">
@@ -142,23 +144,29 @@ export default async function ProductPage({
               </span>
             )}
           </div>
-          <div className="mt-3 grid grid-cols-4 gap-3">
-            {[0, 1, 2, 3].map((index) => (
-              <div
-                key={index}
-                className={`overflow-hidden rounded-xl ${
-                  index === 0 ? "ring-2 ring-brand-500" : "opacity-70"
-                }`}
-              >
-                <ProductImage
-                  categorySlug={product.categorySlug}
-                  name={product.name}
-                  size="thumb"
-                  className="aspect-square w-full"
-                />
-              </div>
-            ))}
-          </div>
+          {/* A thumbnail row only earns its place once there is more than one
+              real photo to switch between — repeating a single image four
+              times reads as a bug, not a gallery. */}
+          {product.images.length > 1 && (
+            <div className="mt-3 grid grid-cols-4 gap-3">
+              {product.images.slice(0, 4).map((image, index) => (
+                <div
+                  key={image}
+                  className={`overflow-hidden rounded-xl ${
+                    index === 0 ? "ring-2 ring-brand-500" : "opacity-70"
+                  }`}
+                >
+                  <ProductImage
+                    categorySlug={product.categorySlug}
+                    name={product.name}
+                    src={image}
+                    size="thumb"
+                    className="aspect-square w-full"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Buy column */}

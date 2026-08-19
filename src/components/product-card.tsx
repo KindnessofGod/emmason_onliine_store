@@ -27,6 +27,7 @@ export function ProductCard({
         <ProductImage
           categorySlug={product.categorySlug}
           name={product.name}
+          src={product.images[0]}
           className="aspect-[4/3] w-full"
         />
         {discount !== null && (

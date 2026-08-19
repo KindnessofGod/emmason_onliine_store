@@ -110,6 +110,7 @@ function rowToProduct(row: ProductRow): Product {
     addedAt: String(row.created_at ?? "").slice(0, 10),
     description: localize(row.description_i18n, row.description as string),
     specs: toSpecs(row.specs),
+    images: Array.isArray(row.images) ? (row.images as string[]) : [],
   };
 }
 
