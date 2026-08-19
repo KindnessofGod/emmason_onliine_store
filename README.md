@@ -99,8 +99,8 @@ The whole storefront reads through one module, `src/lib/data/index.ts`.
 
 ## Product photography
 
-75 of 102 products carry a real photograph; the rest fall back to the branded
-gradient tile. `scripts/source-images.mjs` is the pipeline: it searches
+All 102 products carry a real photograph — no product page shows the
+gradient/icon fallback. `scripts/source-images.mjs` is the pipeline: it searches
 Openverse (Creative Commons, filtered to licences that permit reuse), lets a
 reviewer look at candidates before committing, re-encodes with `sharp` and
 uploads to the `product-images` Storage bucket, and writes `images` plus a
@@ -114,16 +114,13 @@ sourced photo keeps a `title`/`creator`/`license`/`source` credit in
 image's attribution is on record even though the storefront doesn't render
 it yet.
 
-Twelve products were skipped outright — no adequate photo turned up on
-Openverse (mostly ring lights and a couple of budget-brand fans/phones).
-Fifteen more were sourced, reviewed, and then deliberately reverted: the
-photo showed a different real company's product under a listing for oraimo,
-Hikity, Samsung or Ox. Openverse simply doesn't carry small/regional brands
-like oraimo, so a "close" match was often a rival's branded product instead
-— trustworthy-looking but wrong, which is worse than an obviously-placeholder
-gradient tile on a live public site. See `HANDOFF.md` for the two-tier policy
-(what's fine to reuse vs. what had to be reverted) and the full per-category
-count.
+The first pass covered 75; a second pass, run after the shop owner said
+plainly that they don't want any icon or emoji standing in anywhere, closed
+the remaining 27 — including six that show a legible rival brand where
+Openverse had no inventory for oraimo, itel, Tecno, Ox or Hikity (a Nokia
+photo standing in for a Tecno button phone, an Anker power bank for an oraimo
+one). That's a disclosed trade-off, not an oversight — see `HANDOFF.md` for
+the exact six and the reasoning behind each.
 
 ## Environment
 

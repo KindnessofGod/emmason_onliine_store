@@ -321,11 +321,34 @@ ever talks to localhost.
    or "a DSLR camera" is normal placeholder practice, not a brand claim, and
    those were kept. Full per-category counts are in `README.md`.
 
-   Twelve products have no photo at all — nothing adequate turned up after
-   several searches each, mostly ring lights (Openverse has camera
-   macro-flash "ring lights," not vlogging ring lights) and a few budget
-   brand phones/fans. Query `select slug from products where
-   cardinality(images) = 0` to find every row still needing a real photo.
+   **Update: 102/102 now covered.** The user came back after the first pass
+   and said plainly — twice — that they do not want any icon or emoji
+   standing in for a photo anywhere on the site. That changed the priority:
+   a second wave of four parallel agents went after the 27 remaining gaps
+   with instructions to prefer an unbranded match, but to apply a real photo
+   even with a small rival logo in frame rather than leave the tile up. All
+   27 closed. Independently re-verified against the database, not just the
+   agents' own reports: `select count(*) from products where
+   cardinality(images) = 0` returns 0.
+
+   **Six of those 27 still show a legible rival brand, more prominently than
+   "incidental":**
+
+   | Product | Shows |
+   | --- | --- |
+   | `tecno-t101-button-phone`, `tecno-t315-button-phone` | A Nokia 105 — "NOKIA" printed large across the top of the phone |
+   | `oraimo-toast-20-20000mah-power-bank` | "ANKER Power Bank" in sharp, centred text |
+   | `oraimo-powerbox-600-60000mah` | A Xiaomi power bank with the "Mi" logo |
+   | `ox-18-inch-rechargeable-standing-fan` | A Lasko-branded fan hub |
+   | `oraimo-tempo-w2-osw-20` | A Samsung Gear Fit close-up, phone blurred behind it |
+
+   Openverse simply carries no inventory for oraimo, itel, Tecno, Ox, Qasa,
+   Century or Hikity — these six are the honest cost of "always show a real
+   photo" once the closest real match is a rival's product. If any of these
+   bother Emmason before launch, re-run `node scripts/source-images.mjs
+   search "<query>" <n>` for a cleaner candidate, or wait for the real
+   product photo to replace it outright — `apply` on the same slug
+   overwrites in one step either way.
 2. ~~**A hosted Supabase project.**~~ **Done.** Project `Emmanson Store`
    (ref `kdpbuuaibwqktqdwzayu`, eu-west-1) on a second Supabase account, so the
    user's other projects were left untouched. All six migrations and both seeds
