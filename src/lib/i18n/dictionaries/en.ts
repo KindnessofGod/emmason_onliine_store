@@ -33,6 +33,7 @@ const en = {
       "Phones, audio, fans, solar and content-creation gear from Emmason and verified sellers across Nigeria.",
     heroCta: "Shop now",
     heroCtaSecondary: "Sell with us",
+    heroStat: "{products}+ products from {sellers} verified sellers",
     trustDelivery: "Fast nationwide delivery",
     trustGuarantee: "100% product guarantee",
     trustSecure: "Secure payment",

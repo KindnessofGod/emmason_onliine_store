@@ -31,6 +31,7 @@ const fr: Dictionary = {
       "Téléphones, audio, ventilateurs, solaire et matériel de création de contenu, proposés par Emmason et des vendeurs vérifiés partout au Nigeria.",
     heroCta: "Acheter maintenant",
     heroCtaSecondary: "Vendre avec nous",
+    heroStat: "{products}+ produits de {sellers} vendeurs vérifiés",
     trustDelivery: "Livraison rapide dans tout le pays",
     trustGuarantee: "Produits garantis à 100 %",
     trustSecure: "Paiement sécurisé",

@@ -234,6 +234,66 @@ WhatsApp thread pre-filled with everything Emmason needs.
 with status transitions, product CRUD with inline stock editing, and a seller
 application queue where approving an application **creates the seller**.
 
+**Homepage design.** The plain green-gradient hero and the emoji-glyph
+category grid were both replaced after the shop owner said directly they
+didn't want icons — they wanted real product photography. Before touching
+code, this was researched rather than guessed:
+
+- General ecommerce hero conversion data ([Shopify](https://www.shopify.com/blog/16480796-how-to-create-beautiful-and-persuasive-hero-images-for-your-online-store),
+  [Omniconvert](https://www.omniconvert.com/blog/hero-section-examples/)):
+  users spend ~80% of attention above the fold; mobile parity and fast load
+  matter more than a big hero video/carousel for a store like this one.
+- Electronics-specific: shoppers "want to know what the thing does before
+  they want to know how beautiful it is" — close-up real product shots
+  paired with a concrete benefit or price beat lifestyle imagery
+  ([ConvertCart](https://www.convertcart.com/blog/hero-image-examples-ecommerce)).
+- Product photo quality data: professionally-shot product photos convert
+  roughly 40–94% higher than generic/no-photo equivalents across the studies
+  surveyed — the strongest single argument for leaning on the photography
+  sourced this session rather than the gradient tiles
+  ([SellHound](https://www.sellhound.com/learn/conversion-rate-product-photos)).
+- What real marketplaces actually do: fetched Konga's live homepage and
+  oraimo Nigeria's directly. Both lead with real product photography and
+  visible discount percentages ("Get up to 70% off") rather than brand
+  storytelling, and — the concrete detail that mattered most — oraimo ships
+  a **separate mobile-specific hero banner** (`ngbanner-users-m.png`) rather
+  than hiding the visual on small screens.
+- Current layout pattern: the asymmetric "bento grid" (one large tile + a
+  few smaller ones) is the dominant 2026 pattern for showing several real
+  products at once without a slow autoplay carousel — Apple popularised the
+  shape, and it's now common across ecommerce hero sections.
+
+That last point directly named the bug in the old hero: the product collage
+was `hidden lg:block`, so **phones never saw a product photo in the hero at
+all** — a real defect given most of this traffic is mobile, not a matter of
+taste.
+
+What changed, concretely:
+
+1. **Hero** (`src/app/(shop)/[locale]/page.tsx`) — replaced the four-image
+   collage with a 3-tile deal bento: the deepest real discount gets a tall
+   featured tile, two more sit beside it, each carrying its real price and,
+   only where genuine, its real "was" price. Renders identically in shape on
+   mobile (stacked: one full-width tile, two side by side) and desktop (tall
+   left tile, two stacked right) — same markup, responsive spans, no JS.
+   Added one real trust line under the subhead — total live product count
+   and verified seller count, both already computed for this page, not
+   invented.
+2. **Category tiles**, homepage grid and the category detail page banner —
+   both now render `categories.showcase_image_url` (migration `0008`) when
+   set: a real photo of something that category actually sells, chosen by a
+   human (four parallel agents, one per four categories, each downloading
+   and visually comparing 3-5 candidates before picking) rather than picked
+   automatically. The gradient-and-glyph tile is now the fallback for a
+   category with no showcase image chosen yet, not the default look — all
+   16 have one.
+
+Unlike the earlier photo-sourcing pass, brand mismatch was explicitly a
+non-issue here: a category tile represents "here's the kind of thing sold
+in Bluetooth Speakers," not a specific listing, so whichever real photo in
+that category looks best on a small tile — regardless of which brand
+happens to be visible on the product itself — was fair game.
+
 ## 6. Verified by driving a real browser
 
 `node scripts/verify.mjs` (dev server running) exercises: all five locales and

@@ -122,6 +122,26 @@ photo standing in for a Tecno button phone, an Anker power bank for an oraimo
 one). That's a disclosed trade-off, not an oversight — see `HANDOFF.md` for
 the exact six and the reasoning behind each.
 
+## Homepage design
+
+The hero and category grid are built on that photography rather than icons.
+Research on ecommerce/electronics hero design (Konga, oraimo, and general
+conversion data — see `HANDOFF.md`) points the same direction consistently:
+real product photos with a visible price and discount outperform abstract
+brand imagery, and the electronics shopper wants to see the thing, not a
+mood. Two concrete changes follow from that:
+
+- **The hero is a deal bento**, not a plain gradient: the single deepest
+  discount gets a tall featured tile, two more sit beside it, each carrying
+  its real price and — only where genuine — its real saving. It renders on
+  mobile now too; the old collage was `hidden lg:block`, so phones (most of
+  this traffic) never saw a product photo in the hero at all.
+- **Category tiles show a real photo**, hand-picked per category from that
+  category's own products rather than the emoji-on-gradient tile. The
+  gradient/glyph is the fallback for a category that hasn't had one chosen
+  yet (`categories.showcase_image_url`, migration `0008`), not the default
+  look.
+
 ## Environment
 
 See `.env.example`. The ones that matter in production:

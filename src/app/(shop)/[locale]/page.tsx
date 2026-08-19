@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProductGrid } from "@/components/product-card";
@@ -10,7 +11,8 @@ import {
   StoreIcon,
   TruckIcon,
 } from "@/components/icons";
-import { Rating, SectionHeading, VerifiedBadge } from "@/components/ui";
+import { Rating, SaleBadge, SectionHeading, VerifiedBadge } from "@/components/ui";
+import { discountPercent, formatPrice } from "@/lib/format";
 import {
   getCategories,
   newArrivals,
@@ -19,7 +21,7 @@ import {
   productCountBySeller,
   verifiedSellers,
 } from "@/lib/data";
-import { getDictionary, href, pluralize, isLocale } from "@/lib/i18n";
+import { getDictionary, href, interpolate, pluralize, isLocale } from "@/lib/i18n";
 import { site } from "@/lib/site";
 
 export default async function HomePage({
@@ -48,9 +50,26 @@ export default async function HomePage({
     ),
   ]);
 
+  const totalProducts = Array.from(categoryCounts.values()).reduce((sum, n) => sum + n, 0);
+  // Deepest discount first, so the tall featured hero tile carries the
+  // single best real deal rather than whatever sorted first from the query.
+  const heroDeals = [...deals]
+    .sort((a, b) => (discountPercent(b.price, b.compareAtPrice) ?? 0) - (discountPercent(a.price, a.compareAtPrice) ?? 0))
+    .slice(0, 3);
+
   return (
     <>
-      {/* Hero */}
+      {/* Hero
+          Real product photography now exists for the whole catalogue, and
+          research on electronics/marketplace hero sections (Konga, oraimo,
+          general ecommerce conversion data) points the same direction: real
+          product shots with visible price/discount outperform abstract
+          brand imagery, and the "featured big tile + smaller tiles" bento
+          arrangement is the current standard for showing several real
+          products at once without a slow, data-heavy carousel. Unlike the
+          old collage, this renders on mobile too — it was `hidden lg:block`
+          before, so phones (most of this traffic) never saw a product photo
+          in the hero at all. */}
       <section className="relative overflow-hidden bg-brand-700">
         <svg
           viewBox="0 0 1200 600"
@@ -58,12 +77,12 @@ export default async function HomePage({
           className="pointer-events-none absolute inset-0 h-full w-full"
           aria-hidden="true"
         >
-          <path d="M0 420 Q300 340 600 400 T1200 370 V600 H0 Z" fill="#63b824" fillOpacity="0.55" />
-          <path d="M0 480 Q320 410 640 460 T1200 440 V600 H0 Z" fill="#83d243" fillOpacity="0.4" />
+          <path d="M0 420 Q300 340 600 400 T1200 370 V600 H0 Z" fill="#63b824" fillOpacity="0.4" />
+          <path d="M0 480 Q320 410 640 460 T1200 440 V600 H0 Z" fill="#83d243" fillOpacity="0.28" />
           <circle cx="1010" cy="120" r="200" fill="white" fillOpacity="0.06" />
         </svg>
 
-        <div className="container-page relative grid items-center gap-10 py-14 lg:grid-cols-2 lg:py-20">
+        <div className="container-page relative grid items-start gap-10 py-12 lg:grid-cols-2 lg:items-center lg:py-20">
           <div className="animate-fade-up">
             <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white ring-1 ring-inset ring-white/25">
               <SparkIcon className="h-3.5 w-3.5" />
@@ -80,7 +99,15 @@ export default async function HomePage({
               {dict.home.heroSubtitle}
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            {/* A real number, not a marketing flourish — both counts come
+                straight from the same queries already run for this page. */}
+            {totalProducts > 0 && (
+              <p className="mt-4 text-sm font-semibold text-brand-100">
+                {interpolate(dict.home.heroStat, { products: totalProducts, sellers: sellers.length })}
+              </p>
+            )}
+
+            <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 href={href(locale, "/shop")}
                 className="rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-brand-800 shadow-soft transition hover:bg-brand-50"
@@ -96,27 +123,55 @@ export default async function HomePage({
             </div>
           </div>
 
-          {/* Product collage */}
-          <div className="relative hidden lg:block">
-            <div className="grid grid-cols-2 gap-4">
-              {deals.slice(0, 4).map((product, index) => (
-                <Link
-                  key={product.id}
-                  href={href(locale, `/product/${product.slug}`)}
-                  className={`overflow-hidden rounded-2xl shadow-lift transition hover:-translate-y-1 ${
-                    index % 2 === 1 ? "translate-y-6" : ""
-                  }`}
-                >
-                  <ProductImage
-                    categorySlug={product.categorySlug}
-                    name={product.name}
-                    src={product.images[0]}
-                    className="aspect-square w-full"
-                  />
-                </Link>
-              ))}
+          {/* Deal bento — the single best discount gets the tall featured
+              tile; the next two sit beside/below it. Every tile carries the
+              real price and, where genuine, the real saving, the same
+              honest-persuasion rule the rest of the storefront follows. */}
+          {heroDeals.length > 0 && (
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-rows-2">
+              {heroDeals.map((product, index) => {
+                const discount = discountPercent(product.price, product.compareAtPrice);
+                const featured = index === 0;
+                return (
+                  <Link
+                    key={product.id}
+                    href={href(locale, `/product/${product.slug}`)}
+                    className={`group relative overflow-hidden rounded-2xl shadow-lift transition hover:-translate-y-1 ${
+                      featured ? "col-span-2 lg:col-span-1 lg:row-span-2" : "col-span-1"
+                    }`}
+                  >
+                    <ProductImage
+                      categorySlug={product.categorySlug}
+                      name={product.name}
+                      src={product.images[0]}
+                      className={featured ? "aspect-[4/3] w-full lg:aspect-[3/4]" : "aspect-square w-full"}
+                      priority={featured}
+                    />
+                    {discount !== null && (
+                      <span className="absolute left-3 top-3">
+                        <SaleBadge label={interpolate(dict.product.save, { percent: discount })} />
+                      </span>
+                    )}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/80 via-ink-900/25 to-transparent p-3 pt-10">
+                      <p className="truncate text-xs font-semibold text-white/90">{product.name}</p>
+                      <div className="mt-0.5 flex items-baseline gap-1.5">
+                        <span
+                          className={`font-extrabold text-white ${featured ? "text-lg" : "text-sm"}`}
+                        >
+                          {formatPrice(product.price, locale)}
+                        </span>
+                        {product.compareAtPrice && (
+                          <span className="text-[11px] text-white/60 line-through">
+                            {formatPrice(product.compareAtPrice, locale)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Trust bar */}
@@ -152,37 +207,50 @@ export default async function HomePage({
             <Link
               key={category.slug}
               href={href(locale, `/category/${category.slug}`)}
-              className="group relative overflow-hidden rounded-card p-5 text-white shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift"
-              style={{
-                background: `linear-gradient(145deg, ${category.gradient[0]} 0%, ${category.gradient[1]} 100%)`,
-              }}
+              className="group relative overflow-hidden rounded-card text-white shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift"
             >
-              <svg
-                viewBox="0 0 200 200"
-                preserveAspectRatio="none"
-                className="pointer-events-none absolute inset-0 h-full w-full"
-                aria-hidden="true"
-              >
-                <path d="M0 150 Q50 125 100 143 T200 133 V200 H0 Z" fill="white" fillOpacity="0.14" />
-              </svg>
-              {/* Scrim so the white copy keeps contrast over the lighter gradient stops. */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/45 to-transparent"
-              />
-              <span className="relative block text-3xl" aria-hidden="true">
-                {category.glyph}
-              </span>
-              <h3 className="relative mt-8 text-base font-extrabold leading-tight">
-                {category.name[locale]}
-              </h3>
-              <p className="relative mt-1 line-clamp-2 text-xs text-white/85">
-                {category.tagline[locale]}
-              </p>
-              <p className="relative mt-3 flex items-center gap-1 text-xs font-bold">
-                {pluralize(categoryCounts.get(category.slug) ?? 0, dict.seller.productCountOne, dict.seller.productCount)}
-                <ChevronRightIcon className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-              </p>
+              {/* A real photo of something the category actually sells,
+                  chosen by hand — not the glyph-on-gradient tile the shop
+                  owner asked to move away from. That tile is the fallback
+                  for a category that hasn't had one picked yet, not the
+                  default look. */}
+              <div className="relative aspect-[4/3] w-full">
+                {category.showcaseImage ? (
+                  <Image
+                    src={category.showcaseImage}
+                    alt=""
+                    fill
+                    sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+                    className="object-cover transition duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-0"
+                      style={{
+                        background: `linear-gradient(145deg, ${category.gradient[0]} 0%, ${category.gradient[1]} 100%)`,
+                      }}
+                    />
+                    <span className="absolute left-5 top-5 text-3xl" aria-hidden="true">
+                      {category.glyph}
+                    </span>
+                  </>
+                )}
+                {/* Scrim keeps the white copy legible over any photo or gradient. */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-ink-950/85 to-transparent"
+                />
+              </div>
+              <div className="absolute inset-x-0 bottom-0 p-5">
+                <h3 className="text-base font-extrabold leading-tight">{category.name[locale]}</h3>
+                <p className="mt-1 line-clamp-2 text-xs text-white/85">{category.tagline[locale]}</p>
+                <p className="mt-3 flex items-center gap-1 text-xs font-bold">
+                  {pluralize(categoryCounts.get(category.slug) ?? 0, dict.seller.productCountOne, dict.seller.productCount)}
+                  <ChevronRightIcon className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </p>
+              </div>
             </Link>
           ))}
         </div>

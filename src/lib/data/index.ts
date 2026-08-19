@@ -35,7 +35,7 @@ const PRODUCT_COLUMNS = `
 `;
 
 const CATEGORY_COLUMNS =
-  "id, slug, name, description, name_i18n, tagline_i18n, glyph, gradient, sort_order";
+  "id, slug, name, description, name_i18n, tagline_i18n, glyph, gradient, sort_order, showcase_image_url";
 
 const SELLER_COLUMNS =
   "id, slug, name, bio, city, state, since, verified, is_house, rating, review_count";
@@ -123,6 +123,7 @@ function rowToCategory(row: Record<string, unknown>): Category {
     tagline: localize(row.tagline_i18n, row.description as string),
     glyph: (row.glyph as string) ?? "🛍️",
     gradient: [gradient[0] ?? "#2F5C19", gradient[1] ?? "#63B824"],
+    showcaseImage: (row.showcase_image_url as string | null) ?? undefined,
   };
 }
 

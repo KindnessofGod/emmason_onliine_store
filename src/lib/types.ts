@@ -18,6 +18,8 @@ export interface Category {
   glyph: string;
   /** Two brand-family hex stops used for the category tile and image placeholders. */
   gradient: [string, string];
+  /** A real product photo chosen to represent this category on the homepage grid, if one has been picked. */
+  showcaseImage?: string;
 }
 
 export interface Seller {

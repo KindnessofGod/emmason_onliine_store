@@ -31,6 +31,7 @@ const ig: Dictionary = {
       "Ekwentị, ihe ntị, fan, anyanwụ na ngwá ihe nkiri site n'aka Emmason na ndị na-ere ahịa akwadoro na Naịjirịa niile.",
     heroCta: "Zụta ugbu a",
     heroCtaSecondary: "Soro anyị ree ahịa",
+    heroStat: "Ngwaahịa {products}+ site n'aka ndị na-ere ahịa {sellers} akwadoro",
     trustDelivery: "Nnyefe ngwa ngwa na mba niile",
     trustGuarantee: "Nkwa ngwaahịa 100%",
     trustSecure: "Ịkwụ ụgwọ nwere nchekwa",

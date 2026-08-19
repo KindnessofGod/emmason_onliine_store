@@ -31,6 +31,7 @@ const ha: Dictionary = {
       "Wayoyi, na'urorin sauti, fanka, hasken rana da kayan yin bidiyo daga Emmason da masu sayarwa amintattu a faɗin Najeriya.",
     heroCta: "Yi siyayya yanzu",
     heroCtaSecondary: "Ka sayar tare da mu",
+    heroStat: "Kaya sama da {products} daga masu sayarwa {sellers} da aka tabbatar",
     trustDelivery: "Isar da sauri a duk faɗin ƙasar",
     trustGuarantee: "Tabbacin kaya 100%",
     trustSecure: "Biyan kuɗi mai aminci",

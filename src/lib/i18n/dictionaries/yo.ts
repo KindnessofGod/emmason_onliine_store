@@ -31,6 +31,7 @@ const yo: Dictionary = {
       "Fóònù, agbóhùnsáfẹ́fẹ́, pankẹ́rẹ́, oòrùn àti ohun èlò ìṣẹ̀dá láti ọwọ́ Emmason àti àwọn olùtajà tí a fọwọ́sí káàkiri Nàìjíríà.",
     heroCta: "Ra nísinsìnyí",
     heroCtaSecondary: "Ta ọjà pẹ̀lú wa",
+    heroStat: "Ọjà tó ju {products} lọ láti ọ̀dọ̀ olùtajà {sellers} tí a fọwọ́ sí",
     trustDelivery: "Ìfijíṣẹ́ kíákíá jákèjádò orílẹ̀-èdè",
     trustGuarantee: "Ìdánilójú ọjà 100%",
     trustSecure: "Ìsanwó tó ní ààbò",

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ProductGrid } from "@/components/product-card";
@@ -94,20 +95,41 @@ export default async function CategoryPage({
           background: `linear-gradient(145deg, ${category.gradient[0]} 0%, ${category.gradient[1]} 100%)`,
         }}
       >
-        <svg
-          viewBox="0 0 1200 300"
-          preserveAspectRatio="none"
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          aria-hidden="true"
-        >
-          <path d="M0 200 Q300 150 600 185 T1200 165 V300 H0 Z" fill="white" fillOpacity="0.13" />
-          <circle cx="1050" cy="60" r="130" fill="white" fillOpacity="0.07" />
-        </svg>
+        {category.showcaseImage ? (
+          <>
+            <Image
+              src={category.showcaseImage}
+              alt=""
+              fill
+              sizes="100vw"
+              priority
+              className="object-cover"
+            />
+            {/* Strong scrim — this photo carries no decorative wave and needs
+                to hold up the headline on its own across the full width. */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink-950/85 via-ink-950/55 to-ink-950/20"
+            />
+          </>
+        ) : (
+          <svg
+            viewBox="0 0 1200 300"
+            preserveAspectRatio="none"
+            className="pointer-events-none absolute inset-0 h-full w-full"
+            aria-hidden="true"
+          >
+            <path d="M0 200 Q300 150 600 185 T1200 165 V300 H0 Z" fill="white" fillOpacity="0.13" />
+            <circle cx="1050" cy="60" r="130" fill="white" fillOpacity="0.07" />
+          </svg>
+        )}
         <div className="container-page relative py-12">
-          <span className="text-4xl" aria-hidden="true">
-            {category.glyph}
-          </span>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
+          {!category.showcaseImage && (
+            <span className="text-4xl" aria-hidden="true">
+              {category.glyph}
+            </span>
+          )}
+          <h1 className={`text-3xl font-extrabold tracking-tight sm:text-4xl ${category.showcaseImage ? "" : "mt-3"}`}>
             {category.name[locale]}
           </h1>
           <p className="mt-2 max-w-xl text-sm text-white/90 sm:text-base">
