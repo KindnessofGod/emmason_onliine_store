@@ -292,9 +292,40 @@ ever talks to localhost.
 
 ### Blocking launch
 
-1. **Real photography.** `ProductImage` draws a branded gradient tile per
-   category so nothing looks broken, but this is a content problem — ask the
-   user for images.
+1. ~~**Real photography.**~~ **Partially done — placeholder photography,
+   still needs Emmason's real photos.** 75 of 102 products now show a real
+   photograph instead of the gradient tile; `ProductImage` still falls back to
+   the tile for the other 27.
+
+   Source: `scripts/source-images.mjs` pulls from Openverse (CC0/PDM/BY only —
+   never BY-SA, never hotlinked, always re-encoded with `sharp` and re-hosted
+   in Supabase Storage under `product-images`). Eight parallel agents ran the
+   pipeline across all 16 categories: search → download a candidate → look at
+   it → upload + write `images`/`image_credits` on the product row. Every
+   photo carries its licence trail in `image_credits`, index-aligned with
+   `images`, so it's traceable when Emmason's own photos replace it.
+
+   **The one judgement call worth knowing about:** 15 of the ~90 photos the
+   agents applied were reverted after review. They were accurate matches for
+   the *product category* but showed a *different real company's* logo under
+   a listing for oraimo, Hikity, Samsung or Ox — e.g. "Samsung Galaxy Buds FE"
+   rendering a visibly JBL-branded photo, or a Hikity car stereo rendering a
+   Jaguar Land Rover infotainment retrofit. Openverse has essentially no
+   inventory for regional brands like oraimo, so the closest visual match was
+   often a rival's branded product instead. That reads as "this is what your
+   oraimo item looks like" rather than a generic stand-in, which is a
+   trust problem a plain gradient tile is not — so those 15 were reverted to
+   the tile rather than shipped. This distinction did **not** apply to
+   `Generic`-branded products: the storefront makes no manufacturer claim
+   there, so a recognisable stock photo standing in for "a phone repair kit"
+   or "a DSLR camera" is normal placeholder practice, not a brand claim, and
+   those were kept. Full per-category counts are in `README.md`.
+
+   Twelve products have no photo at all — nothing adequate turned up after
+   several searches each, mostly ring lights (Openverse has camera
+   macro-flash "ring lights," not vlogging ring lights) and a few budget
+   brand phones/fans. Query `select slug from products where
+   cardinality(images) = 0` to find every row still needing a real photo.
 2. ~~**A hosted Supabase project.**~~ **Done.** Project `Emmanson Store`
    (ref `kdpbuuaibwqktqdwzayu`, eu-west-1) on a second Supabase account, so the
    user's other projects were left untouched. All six migrations and both seeds

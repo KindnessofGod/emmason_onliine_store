@@ -97,9 +97,33 @@ the exchange rate. Delivery fees are priced outward from Owerri, not Lagos.
 
 The whole storefront reads through one module, `src/lib/data/index.ts`.
 
-Product imagery is still generated: `ProductImage` draws a branded gradient tile
-per category rather than a broken `<img>`. Swap it for `next/image` once real
-photography exists.
+## Product photography
+
+75 of 102 products carry a real photograph; the rest fall back to the branded
+gradient tile. `scripts/source-images.mjs` is the pipeline: it searches
+Openverse (Creative Commons, filtered to licences that permit reuse), lets a
+reviewer look at candidates before committing, re-encodes with `sharp` and
+uploads to the `product-images` Storage bucket, and writes `images` plus a
+licence trail in `image_credits` on the product row.
+
+**This is placeholder photography for a demo, not the finished catalogue.**
+Emmason will supply real product photos; when that happens, `apply` on the
+real slug overwrites the placeholder in one step, same as it was set. Every
+sourced photo keeps a `title`/`creator`/`license`/`source` credit in
+`image_credits`, so it's traceable and swappable later, and so a `CC BY`
+image's attribution is on record even though the storefront doesn't render
+it yet.
+
+Twelve products were skipped outright — no adequate photo turned up on
+Openverse (mostly ring lights and a couple of budget-brand fans/phones).
+Fifteen more were sourced, reviewed, and then deliberately reverted: the
+photo showed a different real company's product under a listing for oraimo,
+Hikity, Samsung or Ox. Openverse simply doesn't carry small/regional brands
+like oraimo, so a "close" match was often a rival's branded product instead
+— trustworthy-looking but wrong, which is worse than an obviously-placeholder
+gradient tile on a live public site. See `HANDOFF.md` for the two-tier policy
+(what's fine to reuse vs. what had to be reverted) and the full per-category
+count.
 
 ## Environment
 
