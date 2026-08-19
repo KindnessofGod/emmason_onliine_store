@@ -1,5 +1,7 @@
 # Emmason — multilingual electronics marketplace
 
+Live: <https://emmason-store.vercel.app>
+
 Storefront and seller marketplace for **Emmason Mobile Phones, Tech & Gadgets**
 (No 24 Day Star Plaza, Owerri, Imo State). Customers buy directly in one of five
 languages; verified third-party sellers list alongside the house catalogue.

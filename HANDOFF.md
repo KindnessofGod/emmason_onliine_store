@@ -1,9 +1,9 @@
 # Handoff — Emmason multilingual electronics marketplace
 
-**Last updated:** 2026-08-15
+**Last updated:** 2026-08-19
 **Repo:** `KindnessofGod/emmason_onliine_store`
 **Working branch:** `claude/online-store-capabilities-1akdt9`
-**Status:** pushed, working tree clean, build green, typecheck and lint clean
+**Status:** live at <https://emmason-store.vercel.app> — pushed, working tree clean, build green, typecheck and lint clean
 
 This supersedes the earlier handoff written on
 `claude/multilingual-electronics-marketplace-kj0jl0`. That branch's work is
@@ -41,7 +41,7 @@ These came from the user directly and are binding:
 | Payments | **Paystack**, plus a WhatsApp ordering option |
 | Market / currency | **Nigeria only, ₦ (NGN)** |
 | Categories | The user's own handwritten list of **16** (see `supabase/seed.sql`) |
-| Product data | Sample data for now; real photos to come |
+| Product data | Researched real models and naira prices; photos still to come |
 
 ### Still open — needs the user
 
@@ -83,9 +83,10 @@ src/
   proxy.ts             locale negotiation AND admin session refresh
 supabase/
   migrations/          schema, RLS, grants, order functions
-  seed.sql             16 categories, 64 products, 37 delivery zones
+  seed.sql             16 categories, 102 products, 37 delivery zones (Owerri-priced)
   seed_i18n.sql        five-language copy, sellers, marketplace back-fill
 scripts/verify.mjs     end-to-end browser check (see section 6)
+scripts/mobile-audit.mjs  360/390/414px overflow and tap-target audit
 ```
 
 **There is deliberately no `src/app/layout.tsx`.** The shop's root layout is
@@ -301,21 +302,25 @@ ever talks to localhost.
 3. **Paystack keys.** The integration is complete but has never run against
    the live API. WhatsApp ordering works without them, and card payment stays
    hidden until `PAYSTACK_SECRET_KEY` is set.
-4. **Deploy.** Vercel project `emmason-store`
-   (`prj_W5khdNR4k0myfqqR6VJfqKhSYLsp`, team `kindnessagbo9-8129s-projects`)
-   is created and linked to the GitHub repo. **It will not build until the
-   environment variables below are set in the Vercel dashboard** — the
-   available MCP tools cannot write them and no Vercel token is present.
-   Vercel's production branch is `main`; the work lives on
-   `claude/online-store-capabilities-1akdt9`, so pushes to it produce preview
-   deployments until someone merges or repoints the production branch.
+4. ~~**Deploy.**~~ **Live** at <https://emmason-store.vercel.app>.
 
-   | Variable | Value |
-   | --- | --- |
-   | `NEXT_PUBLIC_SUPABASE_URL` | `https://kdpbuuaibwqktqdwzayu.supabase.co` |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the `sb_publishable_…` key |
-   | `SUPABASE_SERVICE_ROLE_KEY` | the `sb_secret_…` key — server only |
-   | `NEXT_PUBLIC_SITE_URL` | the deployed origin, for Paystack callbacks |
+   Vercel project `emmason-store` (`prj_W5khdNR4k0myfqqR6VJfqKhSYLsp`, team
+   `kindnessagbo9-8129s-projects`), linked to the GitHub repo. The first build
+   failed because the environment variables were not set yet; the redeploy
+   after they were added is `READY` on target `production`.
+
+   Deployed from `claude/online-store-capabilities-1akdt9`, **not** `main` —
+   Vercel's configured production branch is still `main`, so the current
+   production deployment came from a redeploy of the branch. Merging the branch
+   to `main` is the tidy end state.
+
+   Environment variables live in the Vercel dashboard, not in the repo:
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY`. Add `NEXT_PUBLIC_SITE_URL`
+   (`https://emmason-store.vercel.app`) before switching Paystack on — it
+   builds the payment callback URL. Note `NEXT_PUBLIC_SUPABASE_URL` is needed
+   at **build** time too: it seeds the CSP allow-list and the image optimiser's
+   host list in `next.config.ts`.
 
 ### Significant
 
