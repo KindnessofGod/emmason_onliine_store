@@ -8,22 +8,29 @@ import type { SpecKey } from "./spec-labels";
  * needs no database round-trip to read.
  */
 export const categorySpecTemplates: Record<string, SpecKey[]> = {
-  "chargers-power-banks": ["capacity", "output", "charging", "size"],
-  "bluetooth-speakers": ["output", "playtime", "connectivity", "waterResistance"],
-  earbuds: ["playtime", "connectivity", "noiseCancelling", "waterResistance", "charging"],
-  headsets: ["playtime", "connectivity", "driver", "noiseCancelling"],
-  "smart-watches": ["display", "battery", "connectivity", "waterResistance", "compatibility"],
-  "smart-glasses": ["connectivity", "playtime", "material", "compatibility"],
-  "button-phones": ["display", "battery", "network", "camera"],
-  "kids-tablets": ["display", "storage", "memory", "battery"],
-  cameras: ["resolution", "storage", "connectivity", "waterResistance", "battery"],
-  microphones: ["type", "connectivity", "compatibility", "power"],
-  tripods: ["size", "mount", "capacity", "compatibility"],
-  "car-stereos": ["display", "connectivity", "compatibility", "output"],
-  clippers: ["runtime", "power", "material", "charging"],
-  fans: ["size", "runtime", "power", "charging"],
-  "home-appliances": ["power", "capacity", "material", "size"],
-  "multi-tool-kits": ["inTheBox", "compatibility", "material"],
+  // Every list below was checked against the spec keys actually used by the
+  // 102 seeded products in supabase/seed.sql for that category — not guessed
+  // from the category name — so opening an existing product shows its real
+  // saved values in these named fields instead of dumping them into "custom
+  // fields." A key only appears here if specLabel already has a translated
+  // label for it; anything a category uses but this list omits still saves
+  // fine as a custom field, it just isn't a named field yet.
+  "chargers-power-banks": ["capacity", "output"],
+  "bluetooth-speakers": ["output", "battery", "driver"],
+  earbuds: ["battery", "charging"],
+  headsets: ["battery", "driver"],
+  "smart-watches": ["display", "battery", "compatibility"],
+  "smart-glasses": ["battery", "storage"],
+  "button-phones": ["display", "battery", "camera"],
+  "kids-tablets": ["display", "storage", "battery"],
+  cameras: ["storage", "battery", "power", "mount"],
+  microphones: ["type", "mount", "compatibility", "battery", "power"],
+  tripods: ["mount", "power"],
+  "car-stereos": ["connectivity", "output", "power", "size"],
+  clippers: ["charging", "power", "runtime"],
+  fans: ["battery", "charging", "power", "runtime", "size"],
+  "home-appliances": ["power", "capacity", "runtime", "brightness"],
+  "multi-tool-kits": ["charging", "runtime"],
 };
 
 /** The template for a category slug, or an empty list for an unmapped one
