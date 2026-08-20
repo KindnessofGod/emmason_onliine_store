@@ -1,0 +1,5 @@
+# The product-capture tool is a mobile web page, not a native app
+
+We originally planned a native iOS/Android app (React Native/Expo) for photographing products in the field and running AI spec-extraction. Revisited once it came up that a native app would live in its own repo with its own toolchain (Expo/EAS vs. this project's Next.js/Vercel), since bundling both in one repo risks dependency conflicts without real workspace tooling, and splitting them means managing two repos, two CI setups, and an App Store/Play Store release cycle for a tool only shop staff use.
+
+Instead, the capture workflow is a page in the existing admin dashboard: the phone browser's camera (`<input type="file" capture="environment">`) covers the actual need — take a photo, upload it — without any of that overhead. It ships in this repo, deploys with every other dashboard change, and needs no app-store review. If offline capture or deeper native-hardware access is ever needed, that's the point to revisit a native build — not before.
