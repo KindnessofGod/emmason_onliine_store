@@ -176,10 +176,13 @@ const yo: Dictionary = {
   },
   wholesale: {
     eyebrow: "Ìṣòwò ńlá àti àṣẹ ní ọ̀pọ̀lọpọ̀",
-    popupTitle: "Ra ní ọ̀pọ̀, sápamọ́ 5%",
+    popupBadgeSub: "ní ẹ̀dínwó àṣẹ àkọ́kọ́",
+    popupTitle: "Sápamọ́ 5% lórí àṣẹ ọjà-ńlá àkọ́kọ́ rẹ",
     popupBody:
-      "Àwọn oníṣòwò àti alátùn-tà: rí ẹ̀dínwó 5% lórí àṣẹ àkọ́kọ́ rẹ ní ọ̀pọ̀lọpọ̀ lọ́wọ́ Emmason. Fi orúkọ àti nọ́mbà WhatsApp rẹ sílẹ̀ nísàlẹ̀.",
+      "A ń pèsè fún àwọn oníṣòwò àti alátùn-tà káàkiri, àti kárí Áfíríkà. Fi orúkọ àti nọ́mbà WhatsApp rẹ sílẹ̀ láti dá 5% dúró kí o sì kọ́kọ́ rí ọjà tuntun.",
     popupDismiss: "Kò yára fún mi",
+    reachNigeria: "Káàkiri Nàìjíríà",
+    reachAfrica: "A tún ń pèsè sí àwọn orílẹ̀-èdè Áfíríkà mìíràn",
     nameLabel: "Orúkọ rẹ",
     whatsappLabel: "Nọ́mbà WhatsApp",
     whatsappPlaceholder: "0906 5755 314",
@@ -193,7 +196,7 @@ const yo: Dictionary = {
     chatWhatsapp: "Fi ránṣẹ́ sí wa lórí WhatsApp",
     landingTitle: "Ra ọjà ní ọ̀pọ̀ lọ́wọ́ Emmason",
     landingSubtitle:
-      "Iye owó ọjà-ńlá fún àwọn oníṣòwò àti alátùn-tà káàkiri Nàìjíríà. Forúkọsílẹ̀ nísàlẹ̀ kí o sì sápamọ́ 5% lórí àṣẹ àkọ́kọ́ rẹ.",
+      "A ń pèsè fún àwọn oníṣòwò àti alátùn-tà káàkiri Nàìjíríà — àti sí àwọn orílẹ̀-èdè Áfíríkà mìíràn — ní iye owó ọjà-ńlá. Forúkọsílẹ̀ nísàlẹ̀ kí o sì sápamọ́ 5% lórí àṣẹ àkọ́kọ́ rẹ.",
     benefit1Title: "Iye owó ọjà-ńlá",
     benefit1Body:
       "Ra ní ọ̀pọ̀lọpọ̀ ní iye owó tí a ṣe fún àwọn tó ń tún tà, kì í ṣe fún àwọn tó ń ra ọ̀kan-ṣoṣo.",

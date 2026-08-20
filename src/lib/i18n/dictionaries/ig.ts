@@ -176,10 +176,13 @@ const ig: Dictionary = {
   },
   wholesale: {
     eyebrow: "Nnukwu Ahịa na Iwu Mbupu",
-    popupTitle: "Zụọ nnukwu ahịa, chekwaa 5%",
+    popupBadgeSub: "na iwu mbụ gị",
+    popupTitle: "Chekwaa 5% na iwu mbupu mbụ gị",
     popupBody:
-      "Ndị na-ere ahịa na ndị na-azụ nnukwu ahịa: nweta mbelata 5% na iwu mbupu mbụ gị n'aka Emmason. Hapụ aha na nọmba WhatsApp gị n'okpuru.",
+      "Anyị na-enye ndị na-azụ nnukwu ahịa na ndị na-ere ahịa na mba niile — na Afrika niile. Tinye aha na nọmba WhatsApp gị iji chekwaa 5% ma bụrụ onye mbụ hụ ngwaahịa ọhụrụ.",
     popupDismiss: "Ọ bụghị ugbu a",
+    reachNigeria: "Na Naịjirịa niile",
+    reachAfrica: "Anyị na-ezikwa mba Afrika ndị ọzọ",
     nameLabel: "Aha gị",
     whatsappLabel: "Nọmba WhatsApp",
     whatsappPlaceholder: "0906 5755 314",
@@ -193,7 +196,7 @@ const ig: Dictionary = {
     chatWhatsapp: "Ziga anyị ozi na WhatsApp",
     landingTitle: "Zụọ nnukwu ahịa n'aka Emmason",
     landingSubtitle:
-      "Ọnụahịa mbupu maka ndị na-ere ahịa na ndị na-azụ nnukwu ahịa na Naịjirịa niile. Debanye aha n'okpuru ma chekwaa 5% na iwu mbụ gị.",
+      "Anyị na-enye ndị na-ere ahịa na ndị na-azụ nnukwu ahịa na Naịjirịa niile — na mba Afrika ndị ọzọ — n'ọnụahịa mbupu. Debanye aha n'okpuru ma chekwaa 5% na iwu mbụ gị.",
     benefit1Title: "Ọnụahịa mbupu",
     benefit1Body: "Zụta nnukwu ahịa n'ọnụahịa e wuru maka ndị na-emezigharị ire, ọ bụghị ndị na-azụ otu ihe.",
     benefit2Title: "Ị bụ onye mbụ hụ ngwaahịa ọhụrụ",

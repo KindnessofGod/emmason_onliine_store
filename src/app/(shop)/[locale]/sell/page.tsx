@@ -1,8 +1,16 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ShieldIcon, SparkIcon, TruckIcon, WhatsAppIcon } from "@/components/icons";
+import {
+  GlobeIcon,
+  PinIcon,
+  ShieldIcon,
+  SparkIcon,
+  TruckIcon,
+  WhatsAppIcon,
+} from "@/components/icons";
 import { WholesaleForm } from "@/components/wholesale-form";
 import { getDictionary, isLocale } from "@/lib/i18n";
+import { site } from "@/lib/site";
 
 export async function generateMetadata({
   params,
@@ -48,6 +56,10 @@ export default async function SellPage({
     { title: dict.wholesale.step3, body: dict.wholesale.step3Body },
   ];
 
+  const fullAddress = `${site.address.line1}, ${site.address.line2}, ${site.address.city}, ${site.address.state}, ${site.address.country}`;
+  const mapsSearchHref = `https://www.google.com/maps/search/${encodeURIComponent(fullAddress)}`;
+  const mapsEmbedSrc = `https://www.google.com/maps?q=${encodeURIComponent(fullAddress)}&output=embed`;
+
   return (
     <>
       <section className="relative overflow-hidden bg-ink-900 text-white">
@@ -72,6 +84,16 @@ export default async function SellPage({
             <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-300 sm:text-lg">
               {dict.wholesale.landingSubtitle}
             </p>
+            <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2">
+              <li className="flex items-center gap-2 text-sm font-semibold text-brand-200">
+                <TruckIcon className="h-4 w-4 shrink-0" />
+                {dict.wholesale.reachNigeria}
+              </li>
+              <li className="flex items-center gap-2 text-sm font-semibold text-brand-200">
+                <GlobeIcon className="h-4 w-4 shrink-0" />
+                {dict.wholesale.reachAfrica}
+              </li>
+            </ul>
           </div>
 
           <div className="rounded-card bg-white p-6 shadow-lift sm:p-8">
@@ -113,6 +135,46 @@ export default async function SellPage({
               </li>
             ))}
           </ol>
+        </div>
+      </section>
+
+      <section className="container-page py-14">
+        <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
+          <div>
+            <h2 className="text-2xl font-extrabold tracking-tight text-ink-900 sm:text-3xl">
+              {dict.footer.walkIn}
+            </h2>
+            <address className="mt-5 flex gap-3 not-italic">
+              <PinIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+              <span className="text-sm leading-relaxed text-ink-600">
+                <strong className="font-bold text-ink-900">{site.address.line1}</strong>
+                <br />
+                {site.address.line2}
+                <br />
+                {site.address.city}, {site.address.state}, {site.address.country}
+                <br />
+                <span className="text-ink-400">{dict.footer.hours}</span>
+              </span>
+            </address>
+            <a
+              href={mapsSearchHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-block rounded-xl bg-brand-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-brand-700"
+            >
+              {dict.home.storeCta}
+            </a>
+          </div>
+
+          <div className="overflow-hidden rounded-card border border-ink-100 shadow-soft">
+            <iframe
+              src={mapsEmbedSrc}
+              title={site.address.line1}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="h-72 w-full lg:h-full lg:min-h-[280px]"
+            />
+          </div>
         </div>
       </section>
     </>

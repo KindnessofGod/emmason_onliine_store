@@ -176,10 +176,13 @@ const fr: Dictionary = {
   },
   wholesale: {
     eyebrow: "Vente en gros et commandes groupées",
-    popupTitle: "Achetez en gros, économisez 5 %",
+    popupBadgeSub: "sur votre première commande",
+    popupTitle: "Économisez 5 % sur votre première commande en gros",
     popupBody:
-      "Détaillants et grossistes : obtenez 5 % de réduction sur votre première commande groupée chez Emmason. Laissez simplement votre nom et votre numéro WhatsApp ci-dessous.",
+      "Nous approvisionnons grossistes et détaillants dans tout le pays — et partout en Afrique. Laissez votre nom et votre numéro WhatsApp pour garantir vos 5 % de réduction et être informé en premier des nouveaux stocks.",
     popupDismiss: "Pas maintenant",
+    reachNigeria: "Partout au Nigeria",
+    reachAfrica: "Nous livrons aussi dans d'autres pays africains",
     nameLabel: "Votre nom",
     whatsappLabel: "Numéro WhatsApp",
     whatsappPlaceholder: "0906 5755 314",
@@ -193,7 +196,7 @@ const fr: Dictionary = {
     chatWhatsapp: "Nous contacter sur WhatsApp",
     landingTitle: "Achetez en gros chez Emmason",
     landingSubtitle:
-      "Des prix de gros pour les détaillants et grossistes partout au Nigeria. Inscrivez-vous ci-dessous et économisez 5 % sur votre première commande.",
+      "Nous approvisionnons détaillants et grossistes dans tout le Nigeria — et dans d'autres pays africains — à des prix de gros. Inscrivez-vous ci-dessous et économisez 5 % sur votre première commande.",
     benefit1Title: "Prix de gros",
     benefit1Body: "Achetez en grande quantité à des prix pensés pour les revendeurs, pas pour les acheteurs à l'unité.",
     benefit2Title: "Priorité sur les nouveaux stocks",

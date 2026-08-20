@@ -176,10 +176,13 @@ const ha: Dictionary = {
   },
   wholesale: {
     eyebrow: "Ciniki Jimla da Manyan Oda",
-    popupTitle: "Sayi jimla, ka sami rangwamen 5%",
+    popupBadgeSub: "akan odar farkonka",
+    popupTitle: "Sami rangwamen 5% akan odar jimla ta farko",
     popupBody:
-      "'Yan kasuwa da masu siyar jimla: ku sami rangwamen 5% akan odar jimla ta farko daga Emmason. Ku bar suna da lambar WhatsApp a ƙasa.",
+      "Muna ba wa masu siyar jimla da 'yan kasuwa kaya a faɗin ƙasar — da kuma a Afirka. Ka bar suna da lambar WhatsApp naka don samun rangwamen 5% da ganin sabon kaya tukuna.",
     popupDismiss: "Ba yanzu ba",
+    reachNigeria: "A faɗin Najeriya baki ɗaya",
+    reachAfrica: "Muna kuma kai kaya wasu ƙasashen Afirka",
     nameLabel: "Sunanka",
     whatsappLabel: "Lambar WhatsApp",
     whatsappPlaceholder: "0906 5755 314",
@@ -193,7 +196,7 @@ const ha: Dictionary = {
     chatWhatsapp: "Tuntube mu a WhatsApp",
     landingTitle: "Sayi kaya jimla daga Emmason",
     landingSubtitle:
-      "Farashin jimla ga 'yan kasuwa da masu siyar jimla a faɗin Najeriya. Ka yi rajista a ƙasa ka kuma sami rangwamen 5% akan odar farkonka.",
+      "Muna ba 'yan kasuwa da masu siyar jimla kaya a faɗin Najeriya — da kuma zuwa wasu ƙasashen Afirka — akan farashin jimla. Ka yi rajista a ƙasa ka kuma sami rangwamen 5% akan odar farkonka.",
     benefit1Title: "Farashin jimla",
     benefit1Body: "Ka saya jimla-jimla akan farashin da aka tsara wa masu sake sayarwa, ba masu saye ɗaya-ɗaya ba.",
     benefit2Title: "Ganin sabon kaya tukuna",

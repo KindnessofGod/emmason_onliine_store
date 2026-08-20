@@ -185,10 +185,13 @@ const en = {
   /** The wholesale/bulk-buyer popup and the /sell page built around it. */
   wholesale: {
     eyebrow: "Wholesale & bulk orders",
-    popupTitle: "Buy wholesale, save 5%",
+    popupBadgeSub: "off your first order",
+    popupTitle: "Save 5% on your first wholesale order",
     popupBody:
-      "Retailers and wholesalers: get 5% off your first bulk order from Emmason. Leave your name and WhatsApp number below.",
+      "We supply wholesalers and retailers nationwide — and across Africa. Drop your name and WhatsApp number to lock in 5% off and get first access to new stock.",
     popupDismiss: "Not now",
+    reachNigeria: "Nationwide across Nigeria",
+    reachAfrica: "We also supply other African countries",
     nameLabel: "Your name",
     whatsappLabel: "WhatsApp number",
     whatsappPlaceholder: "0906 5755 314",
@@ -202,7 +205,7 @@ const en = {
     chatWhatsapp: "Message us on WhatsApp",
     landingTitle: "Buy wholesale from Emmason",
     landingSubtitle:
-      "Bulk pricing for retailers and wholesalers across Nigeria. Sign up below and save 5% on your first order.",
+      "We supply retailers and wholesalers nationwide across Nigeria — and to other African countries — at bulk pricing. Sign up below and save 5% on your first order.",
     benefit1Title: "Wholesale pricing",
     benefit1Body: "Buy in bulk at prices built for resellers, not single-unit shoppers.",
     benefit2Title: "First look at new stock",
