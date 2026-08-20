@@ -294,6 +294,7 @@ export async function saveProduct(formData: FormData): Promise<ActionResult> {
   }
 
   revalidatePath("/admin/products");
+  revalidatePath("/admin");
   revalidatePath("/");
   revalidatePath(`/product/${data.slug}`);
   return { ok: true };

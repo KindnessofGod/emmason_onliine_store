@@ -4,6 +4,7 @@ import { getAdminProduct, listStockMovements } from "@/lib/admin-data";
 import { listAdminCategories } from "@/lib/admin-data";
 import { ProductForm } from "@/components/admin/product-form";
 import { StockMovementPanel } from "@/components/admin/stock-movement-panel";
+import { PendingReviewBadge } from "@/components/admin/pending-review-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ export default async function EditProductPage({
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold tracking-tight">{product.name}</h1>
+        {product.status === "pending_review" && <PendingReviewBadge />}
         <Link
           href={`/product/${product.slug}`}
           target="_blank"
