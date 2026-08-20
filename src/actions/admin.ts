@@ -134,6 +134,35 @@ export async function deleteProductImage(url: string): Promise<void> {
   await supabase.storage.from(PRODUCT_IMAGES_BUCKET).remove([objectPath]);
 }
 
+/**
+ * The product form serializes its merged template + custom spec fields into
+ * one hidden JSON field (see product-form.tsx) rather than one form field
+ * per spec key, since the set of keys is dynamic (depends on category and
+ * how many custom rows staff added). Parse it defensively: a missing,
+ * malformed, or empty-keyed/valued entry just drops out rather than failing
+ * the whole save, since this is server-side validation of a client-built
+ * payload, not something a staff member fills in directly.
+ */
+const specsSchema = z
+  .string()
+  .optional()
+  .transform((raw): Record<string, string> => {
+    if (!raw) return {};
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return {};
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+
+    return Object.fromEntries(
+      Object.entries(parsed as Record<string, unknown>)
+        .map(([key, value]): [string, string] => [key.trim(), String(value ?? "").trim()])
+        .filter(([key, value]) => key.length > 0 && value.length > 0),
+    );
+  });
+
 const productSchema = z.object({
   id: z.uuid().optional(),
   categoryId: z.uuid("Choose a category"),
@@ -152,6 +181,7 @@ const productSchema = z.object({
   // Real Supabase Storage public URLs run ~100+ chars each; a 2000-char cap
   // would silently fail a save once a product carried more than ~15 photos.
   imageUrls: z.string().trim().max(20000).optional().or(z.literal("")),
+  specs: specsSchema,
   warrantyMonths: z.coerce.number().int().min(0).max(120).optional(),
   status: z.enum(["pending_review", "published", "unpublished"]),
   isFeatured: z.boolean(),
@@ -170,6 +200,7 @@ function readProductForm(formData: FormData) {
     stock: String(formData.get("stock") ?? "0"),
     sku: String(formData.get("sku") ?? ""),
     imageUrls: String(formData.get("imageUrls") ?? ""),
+    specs: (formData.get("specs") as string) || undefined,
     warrantyMonths: String(formData.get("warrantyMonths") ?? "") || undefined,
     status: String(formData.get("status") ?? "published"),
     isFeatured: formData.get("isFeatured") === "on",
@@ -233,6 +264,7 @@ export async function saveProduct(formData: FormData): Promise<ActionResult> {
     compare_at_price_kobo: compareAtKobo,
     stock: data.stock,
     sku: data.sku || null,
+    specs: data.specs,
     images: (data.imageUrls ?? "")
       .split(/[\n,]/)
       .map((url) => url.trim())

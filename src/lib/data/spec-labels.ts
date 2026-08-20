@@ -145,4 +145,65 @@ export const specLabel = {
     ha: "Cikin akwati",
     fr: "Dans la boîte",
   },
+  waterResistance: {
+    en: "Water resistance",
+    yo: "Ààbò omi",
+    ig: "Nchekwa mmiri",
+    ha: "Juriyar ruwa",
+    fr: "Résistance à l'eau",
+  },
+  noiseCancelling: {
+    en: "Noise cancelling",
+    yo: "Yíyọ ariwo kúrò",
+    ig: "Iwepu ụzụ",
+    ha: "Kawar da hayaniya",
+    fr: "Réduction de bruit",
+  },
+  driver: {
+    en: "Driver",
+    yo: "Awakọ́ ohùn",
+    ig: "Ngwa olu",
+    ha: "Na'urar sauti",
+    fr: "Haut-parleur",
+  },
+  resolution: {
+    en: "Resolution",
+    yo: "Ìwọ̀n àwòrán",
+    ig: "Ọkwa foto",
+    ha: "Ƙarfin hoto",
+    fr: "Résolution",
+  },
+  type: {
+    en: "Type",
+    yo: "Irú",
+    ig: "Ụdị",
+    ha: "Nau'i",
+    fr: "Type",
+  },
 } satisfies Record<string, LocalizedText>;
+
+export type SpecKey = keyof typeof specLabel;
+
+/**
+ * Collapse a spec key to bare-lowercase-alphanumeric, so "Water resistance",
+ * "water-resistance" and "waterResistance" all resolve to the same entry
+ * regardless of how a product's `specs` jsonb happened to capitalise or
+ * space it. Used both to look up a stored key's translated label and to
+ * match a stored key back to the `specLabel`/template key it came from.
+ */
+export function normalizeSpecKey(key: string): string {
+  return key.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+const specLabelByNormalizedKey = new Map<string, LocalizedText>(
+  (Object.entries(specLabel) as [SpecKey, LocalizedText][]).map(([key, value]) => [
+    normalizeSpecKey(key),
+    value,
+  ]),
+);
+
+/** Translated label for a stored spec key, however it was cased/spaced.
+ *  Undefined for a custom field with no known translation. */
+export function lookupSpecLabel(key: string): LocalizedText | undefined {
+  return specLabelByNormalizedKey.get(normalizeSpecKey(key));
+}

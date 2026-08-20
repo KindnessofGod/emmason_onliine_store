@@ -2,7 +2,7 @@ import "server-only";
 
 import { createSupabaseCatalogClient } from "@/lib/supabase/server";
 import { locales, defaultLocale } from "@/lib/i18n/config";
-import { specLabel } from "./spec-labels";
+import { lookupSpecLabel } from "./spec-labels";
 import type {
   Category,
   Condition,
@@ -71,15 +71,10 @@ function localize(
 function toSpecs(specs: unknown): Product["specs"] {
   if (!specs || typeof specs !== "object" || Array.isArray(specs)) return [];
 
-  const known = specLabel as Record<string, LocalizedText | undefined>;
-
-  return Object.entries(specs as Record<string, unknown>).map(([label, value]) => {
-    const key = label.toLowerCase().replace(/[^a-z0-9]/g, "");
-    return {
-      label: known[key] ?? localize(null, label),
-      value: String(value),
-    };
-  });
+  return Object.entries(specs as Record<string, unknown>).map(([label, value]) => ({
+    label: lookupSpecLabel(label) ?? localize(null, label),
+    value: String(value),
+  }));
 }
 
 type ProductRow = Record<string, unknown> & {

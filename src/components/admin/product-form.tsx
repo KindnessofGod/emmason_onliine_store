@@ -1,13 +1,37 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowDown, ArrowUp, Loader2, Trash2, UploadCloud } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, UploadCloud, X } from "lucide-react";
 import { deleteProductImage, saveProduct, uploadProductImage } from "@/actions/admin";
 import { koboToNaira } from "@/lib/money";
 import { PRODUCT_STATUSES } from "@/lib/product-status";
+import { specTemplateForCategory } from "@/lib/data/category-spec-templates";
+import { normalizeSpecKey, specLabel, type SpecKey } from "@/lib/data/spec-labels";
 import type { DbCategory, DbProduct } from "@/lib/db-types";
+
+/** One row of the working spec list — every template field and every custom
+ *  field is one of these, so there is a single source of truth for `specs`
+ *  regardless of whether a row is currently shown as a named field or a
+ *  free key/value row (that classification is derived at render time from
+ *  the selected category's template, in `ProductForm` below, so nothing is
+ *  hidden after a category switch — it just moves between the two lists). */
+type SpecEntry = { id: string; key: string; value: string };
+
+function makeSpecId(): string {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+}
+
+function specEntriesFromProduct(specs: Record<string, string> | undefined): SpecEntry[] {
+  return Object.entries(specs ?? {}).map(([key, value]) => ({
+    id: makeSpecId(),
+    key,
+    value,
+  }));
+}
 
 /** Turn a product name into a URL slug as the user types. */
 function slugify(value: string): string {
@@ -38,6 +62,75 @@ export function ProductForm({
   // Lifted out of the picker so the submit button can stay disabled until
   // every in-flight upload has either landed in `images` or failed.
   const [imagesUploading, setImagesUploading] = useState(false);
+
+  const [categoryId, setCategoryId] = useState(product?.category_id ?? "");
+  const selectedCategory = categories.find((category) => category.id === categoryId);
+  const specTemplate = specTemplateForCategory(selectedCategory?.slug);
+
+  const [specEntries, setSpecEntries] = useState<SpecEntry[]>(() =>
+    specEntriesFromProduct(product?.specs),
+  );
+
+  const specsJson = useMemo(
+    () =>
+      JSON.stringify(
+        Object.fromEntries(
+          specEntries
+            .map((entry): [string, string] => [entry.key.trim(), entry.value.trim()])
+            .filter(([key, value]) => key.length > 0 && value.length > 0),
+        ),
+      ),
+    [specEntries],
+  );
+
+  // A row counts as a template row if its (normalized) key matches one of the
+  // selected category's template fields; every other row is a custom field.
+  // Recomputed on every category change so switching categories re-buckets
+  // rows instead of losing them.
+  const templateKeySet = useMemo(
+    () => new Set(specTemplate.map((specKey) => normalizeSpecKey(specKey))),
+    [specTemplate],
+  );
+  const entryByTemplateKey = useMemo(() => {
+    const map = new Map<string, SpecEntry>();
+    for (const entry of specEntries) {
+      const key = normalizeSpecKey(entry.key);
+      if (templateKeySet.has(key)) map.set(key, entry);
+    }
+    return map;
+  }, [specEntries, templateKeySet]);
+  const customEntries = specEntries.filter(
+    (entry) => !templateKeySet.has(normalizeSpecKey(entry.key)),
+  );
+
+  /** Set (or create) the entry for a template field, matching an existing
+   *  row by normalized key regardless of how it was originally cased. */
+  function setTemplateSpecValue(specKey: SpecKey, value: string) {
+    setSpecEntries((entries) => {
+      const target = normalizeSpecKey(specKey);
+      const index = entries.findIndex((entry) => normalizeSpecKey(entry.key) === target);
+      if (index === -1) {
+        return [...entries, { id: makeSpecId(), key: specLabel[specKey].en, value }];
+      }
+      const next = [...entries];
+      next[index] = { ...next[index], value };
+      return next;
+    });
+  }
+
+  function addCustomSpecField() {
+    setSpecEntries((entries) => [...entries, { id: makeSpecId(), key: "", value: "" }]);
+  }
+
+  function updateCustomSpecField(id: string, field: "key" | "value", value: string) {
+    setSpecEntries((entries) =>
+      entries.map((entry) => (entry.id === id ? { ...entry, [field]: value } : entry)),
+    );
+  }
+
+  function removeCustomSpecField(id: string) {
+    setSpecEntries((entries) => entries.filter((entry) => entry.id !== id));
+  }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -102,7 +195,8 @@ export function ProductForm({
               id="categoryId"
               name="categoryId"
               required
-              defaultValue={product?.category_id ?? ""}
+              value={categoryId}
+              onChange={(event) => setCategoryId(event.target.value)}
               className={inputClass}
             >
               <option value="">Choose…</option>
@@ -212,6 +306,91 @@ export function ProductForm({
               className={inputClass}
             />
           </div>
+        </div>
+      </fieldset>
+
+      <fieldset className="rounded-xl border border-ink-200 bg-white p-5">
+        <legend className="px-1 text-sm font-semibold">Specifications</legend>
+
+        <input type="hidden" name="specs" value={specsJson} />
+
+        {selectedCategory ? (
+          specTemplate.length > 0 ? (
+            <div className="mt-2 grid gap-4 sm:grid-cols-2">
+              {specTemplate.map((specKey) => {
+                const entry = entryByTemplateKey.get(normalizeSpecKey(specKey));
+                return (
+                  <div key={specKey}>
+                    <Label htmlFor={`spec-${specKey}`}>{specLabel[specKey].en}</Label>
+                    <input
+                      id={`spec-${specKey}`}
+                      value={entry?.value ?? ""}
+                      onChange={(event) => setTemplateSpecValue(specKey, event.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-ink-500">
+              No spec template for this category yet — use custom fields below.
+            </p>
+          )
+        ) : (
+          <p className="mt-2 text-xs text-ink-500">
+            Choose a category above to see its spec fields.
+          </p>
+        )}
+
+        <div className="mt-5 border-t border-ink-100 pt-4">
+          <p className="text-sm font-medium">Custom fields</p>
+          <p className="mt-1 text-xs text-ink-500">
+            Anything not covered by the fields above — added as its own row on the
+            product page.
+          </p>
+
+          <div className="mt-3 space-y-2">
+            {customEntries.map((entry) => (
+              <div key={entry.id} className="flex gap-2">
+                <input
+                  aria-label="Custom spec name"
+                  placeholder="Name (e.g. Weight)"
+                  value={entry.key}
+                  onChange={(event) =>
+                    updateCustomSpecField(entry.id, "key", event.target.value)
+                  }
+                  className={`${inputClass} mt-0 w-2/5`}
+                />
+                <input
+                  aria-label="Custom spec value"
+                  placeholder="Value"
+                  value={entry.value}
+                  onChange={(event) =>
+                    updateCustomSpecField(entry.id, "value", event.target.value)
+                  }
+                  className={`${inputClass} mt-0 flex-1`}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeCustomSpecField(entry.id)}
+                  aria-label="Remove custom field"
+                  className="rounded-lg border border-ink-200 px-2 text-ink-500 transition hover:border-red-300 hover:text-red-600"
+                >
+                  <X className="size-4" aria-hidden />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={addCustomSpecField}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-600 transition hover:border-brand-400 hover:text-brand-700"
+          >
+            <Plus className="size-3.5" aria-hidden />
+            Add custom field
+          </button>
         </div>
       </fieldset>
 
