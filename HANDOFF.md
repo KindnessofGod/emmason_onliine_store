@@ -294,6 +294,39 @@ in Bluetooth Speakers," not a specific listing, so whichever real photo in
 that category looks best on a small tile — regardless of which brand
 happens to be visible on the product itself — was fair game.
 
+**Hero lifestyle photo.** The bento tiles above sit in front of a real photo
+of a person genuinely enjoying a gadget, not a flat brand-green background.
+First attempt (an Openverse stock photo, desaturated and blended into the
+brand colour via `mix-blend-mode: multiply`) was shown to the shop owner and
+explicitly rejected on three counts: wrong subject (not Black), wrong
+gadget/mood (didn't read as genuine excitement), and the grayscale/duotone
+treatment itself. A further Openverse/Wikimedia Commons search for a
+suitable Black/African lifestyle photo came up empty (watermarked stock,
+back-of-head-only shots, nothing usable under a free licence), so the shop
+owner generated their own images instead (ChatGPT/Google Flow, prompts
+written collaboratively) and pushed them directly into the repo. The chosen
+photo — a woman listening to music on headphones against a clean, warm
+backdrop — was resized/compressed with `sharp` and uploaded to Supabase
+Storage at `site/hero-lifestyle-headphones.jpg`; it now renders full colour
+(no duotone) behind the whole hero section at every breakpoint via
+`next/image fill`, with a short top-heavy gradient scrim
+(`from-brand-900/75 via-brand-900/25 to-transparent`) so the headline stays
+legible without darkening the photo lower down. Crop position
+(`object-[68%_28%]` → `sm:object-[72%_center]` → `lg:object-[80%_center]`)
+was tuned specifically against a 375px-wide screenshot so her face and the
+headphones stay in frame on the smallest phones, not just on desktop.
+
+Two more of the shop owner's photos were processed and uploaded for future
+use but are not wired into any page yet:
+`site/lifestyle-man-earbuds-phone.jpg` and `site/lifestyle-men-boombox.jpg`
+(good candidates for the Earbuds/Headsets and Bluetooth Speakers category
+banners respectively, if wanted later). Note the boombox photo shows a
+visible JBL logo — a real trademark, since it's AI-generated rather than
+licensed stock — worth a second look before that photo goes live anywhere.
+The raw multi-megabyte source `.jpeg` files were removed from the repo
+(`images/`) once processed, matching the existing convention of hosting
+photography only via Supabase Storage, never committing raw binaries.
+
 ## 6. Verified by driving a real browser
 
 `node scripts/verify.mjs` (dev server running) exercises: all five locales and

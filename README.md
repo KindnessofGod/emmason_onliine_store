@@ -141,6 +141,12 @@ mood. Two concrete changes follow from that:
   gradient/glyph is the fallback for a category that hasn't had one chosen
   yet (`categories.showcase_image_url`, migration `0008`), not the default
   look.
+- **The hero itself sits over a real lifestyle photo**, full colour, at
+  every breakpoint — a woman genuinely enjoying music on headphones, not a
+  flat brand-green background or a desaturated/blended stock photo (an
+  earlier duotone attempt was tried and rejected). See `HANDOFF.md` for the
+  full story, including two more sourced lifestyle photos held in Storage
+  for future use and not yet wired into any page.
 
 ## Environment
 
