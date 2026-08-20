@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { useCart } from "./cart-provider";
 import { CartIcon, CloseIcon, MenuIcon, PhoneIcon, SearchIcon, StoreIcon } from "./icons";
 import { LanguageSwitcher } from "./language-switcher";
@@ -141,8 +142,16 @@ export function Header({
         </div>
       </div>
 
-      {/* Mobile drawer */}
-      {menuOpen && (
+      {/* Mobile drawer
+          Portalled to document.body: nested directly under <header>, this
+          `fixed` panel was being positioned relative to the header's own box
+          instead of the viewport, because the header's `backdrop-blur`
+          (backdrop-filter) creates a containing block for fixed descendants —
+          a CSS quirk shared with `transform`/`filter`/`will-change`. That
+          squashed the whole drawer down to the header's ~100px height, so
+          opening it on a phone showed only the top strip and nothing below
+          it. */}
+      {menuOpen && createPortal(
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
@@ -219,7 +228,8 @@ export function Header({
               </a>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </header>
   );
