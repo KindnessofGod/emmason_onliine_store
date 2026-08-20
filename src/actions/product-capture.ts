@@ -191,11 +191,17 @@ export async function extractProductFromPhotos(
   // letters/digits to slugify (e.g. read as symbols only) — otherwise the
   // slug would be just the random suffix with a leading hyphen, which fails
   // saveProduct's slug format check.
-  const slugBase = slugify(name) || "product";
+  // Reserve room for "-" + 8 hex chars *before* truncating the base, not
+  // after — truncating the combined string to 200 chars would silently drop
+  // the suffix for any name whose slug is already near the cap, defeating
+  // the collision resistance below for exactly the long names most likely
+  // to share a common prefix.
+  const SLUG_SUFFIX_LENGTH = 9; // "-" + 8 hex chars
+  const slugBase = (slugify(name) || "product").slice(0, 200 - SLUG_SUFFIX_LENGTH);
   // Always suffixed, even for a real inferred name — two staff photographing
   // the same phone model on the same day would otherwise collide on slug
   // uniqueness (enforced by saveProduct/the DB) before either reaches review.
-  const slug = `${slugBase}-${randomUUID().slice(0, 8)}`.slice(0, 200);
+  const slug = `${slugBase}-${randomUUID().slice(0, 8)}`;
 
   const formData = new FormData();
   formData.set("categoryId", category.id);
