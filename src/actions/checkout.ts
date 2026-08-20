@@ -8,6 +8,7 @@ import {
   getOrderByReference,
   placeOrder,
 } from "@/lib/orders";
+import { sendOrderAlertEmail } from "@/lib/order-alert-email";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { storeConfig } from "@/lib/store-config";
 import { buildOrderMessage, whatsAppLink } from "@/lib/whatsapp";
@@ -143,6 +144,17 @@ export async function submitCheckout(input: CheckoutInput): Promise<CheckoutResu
 
       await attachPaystackReference(placed.orderId, transaction.reference);
 
+      // Only alert the owner once payment has actually started — sending it
+      // any earlier would mean a failed Paystack init (below) still emails a
+      // "new order" for one that's about to be cancelled. A failed or
+      // missing send must never affect checkout, so this is best-effort.
+      try {
+        const orderForAlert = await getOrderByReference(placed.reference);
+        if (orderForAlert) await sendOrderAlertEmail(orderForAlert);
+      } catch (error) {
+        console.error("Order alert email failed", error);
+      }
+
       return {
         ok: true,
         kind: "paystack",
@@ -168,6 +180,15 @@ export async function submitCheckout(input: CheckoutInput): Promise<CheckoutResu
   const order = await getOrderByReference(placed.reference);
   if (!order) {
     return { ok: true, kind: "manual", reference: placed.reference };
+  }
+
+  // The order is fully placed at this point (no equivalent "payment init"
+  // step to fail first, unlike the card path above), so alert the owner now.
+  // A failed or missing send must never affect checkout — best-effort.
+  try {
+    await sendOrderAlertEmail(order);
+  } catch (error) {
+    console.error("Order alert email failed", error);
   }
 
   return {
