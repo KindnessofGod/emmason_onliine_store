@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import type { DbCategory, DbProduct, ProductStatus } from "@/lib/db-types";
+import type { DbCategory, DbProduct, ProductStatus, StockMovementRow } from "@/lib/db-types";
 
 export interface DashboardStats {
   ordersToday: number;
@@ -95,6 +95,19 @@ export async function getAdminProduct(id: string): Promise<DbProduct | null> {
 
   if (error) throw error;
   return data as DbProduct | null;
+}
+
+/** A product's full Stock Movement history, newest first. */
+export async function listStockMovements(productId: string): Promise<StockMovementRow[]> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("stock_movements")
+    .select("*")
+    .eq("product_id", productId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as StockMovementRow[];
 }
 
 /** Categories as raw rows, for the admin editor's category picker. */

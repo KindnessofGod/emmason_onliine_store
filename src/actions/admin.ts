@@ -12,6 +12,20 @@ import { nairaToKobo } from "@/lib/money";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
+/** The first field-level validation message, or a generic fallback. */
+function firstFieldError<T>(error: z.ZodError<T>): string {
+  const flat = z.flattenError(error);
+  const messages = Object.values(flat.fieldErrors).flat() as string[];
+  return messages[0] ?? "Please check the form and try again.";
+}
+
+/** Every admin view that shows a product's Stock, refreshed after a Stock Movement. */
+function revalidateProductViews(productId: string): void {
+  revalidatePath(`/admin/products/${productId}`);
+  revalidatePath("/admin/products");
+  revalidatePath("/admin");
+}
+
 const ORDER_STATUSES = [
   "pending",
   "awaiting_payment",
@@ -212,13 +226,7 @@ export async function saveProduct(formData: FormData): Promise<ActionResult> {
 
   const parsed = productSchema.safeParse(readProductForm(formData));
   if (!parsed.success) {
-    const flat = z.flattenError(parsed.error);
-    return {
-      ok: false,
-      error:
-        Object.values(flat.fieldErrors).flat()[0] ??
-        "Please check the form and try again.",
-    };
+    return { ok: false, error: firstFieldError(parsed.error) };
   }
 
   const data = parsed.data;
@@ -291,27 +299,131 @@ export async function saveProduct(formData: FormData): Promise<ActionResult> {
   return { ok: true };
 }
 
-/** Quick stock correction from the products table, without opening the editor. */
+/**
+ * Quick stock correction from the products table, without opening the full
+ * editor. Routed through log_stock_movement (as an adjustment) rather than
+ * writing products.stock directly — otherwise this path would silently
+ * bypass the Stock Movement ledger and its "full history" guarantee.
+ */
 export async function adjustStock(
   productId: string,
   stock: number,
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   if (!Number.isInteger(stock) || stock < 0) {
     return { ok: false, error: "Stock must be zero or a whole number" };
   }
 
   const supabase = createSupabaseAdminClient();
-  const { error } = await supabase
-    .from("products")
-    .update({ stock })
-    .eq("id", productId);
 
-  if (error) return { ok: false, error: error.message };
+  const { data: current, error: fetchError } = await supabase
+    .from("products")
+    .select("stock")
+    .eq("id", productId)
+    .maybeSingle();
+
+  if (fetchError) return { ok: false, error: fetchError.message };
+  if (!current) return { ok: false, error: "Product not found" };
+
+  const delta = stock - current.stock;
+  if (delta !== 0) {
+    const { error } = await supabase.rpc("log_stock_movement", {
+      p_product_id: productId,
+      p_type: "adjustment",
+      p_quantity: delta,
+      p_unit_cost_kobo: null,
+      p_note: "Quick correction from the products list",
+      p_logged_by: admin.id,
+    });
+
+    if (error) return { ok: false, error: error.message };
+  }
 
   revalidatePath("/admin/products");
   revalidatePath("/admin");
+  return { ok: true };
+}
+
+const restockSchema = z.object({
+  productId: z.uuid(),
+  quantity: z.coerce.number().int().positive("Quantity must be greater than zero"),
+  unitCostNaira: z.coerce.number().min(0, "Cost cannot be negative").optional(),
+  note: z.string().trim().max(500).optional(),
+});
+
+/**
+ * Log a Restock: goods newly taken in, with quantity and cost per unit. Goes
+ * through the log_stock_movement RPC so the products.stock update and the
+ * Stock Movement row are written atomically (see 0011_stock_movements.sql).
+ */
+export async function logRestock(
+  productId: string,
+  quantity: number,
+  unitCostNaira?: number,
+  note?: string,
+): Promise<ActionResult> {
+  const admin = await requireAdmin();
+
+  const parsed = restockSchema.safeParse({ productId, quantity, unitCostNaira, note });
+  if (!parsed.success) return { ok: false, error: firstFieldError(parsed.error) };
+
+  const data = parsed.data;
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.rpc("log_stock_movement", {
+    p_product_id: data.productId,
+    p_type: "restock",
+    p_quantity: data.quantity,
+    p_unit_cost_kobo:
+      data.unitCostNaira !== undefined ? nairaToKobo(data.unitCostNaira) : null,
+    p_note: data.note || null,
+    p_logged_by: admin.id,
+  });
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidateProductViews(data.productId);
+  return { ok: true };
+}
+
+const adjustmentSchema = z.object({
+  productId: z.uuid(),
+  quantity: z.coerce
+    .number()
+    .int()
+    .refine((value) => value !== 0, "Quantity cannot be zero"),
+  reason: z.string().trim().min(3, "A reason is required").max(500),
+});
+
+/**
+ * Log an Adjustment: a Stock correction for a reason other than a Restock or
+ * a Sale — damage, loss, or a miscount. `quantity` is the signed delta (e.g.
+ * -2 for two damaged units, +1 for a miscount that turned up an extra).
+ */
+export async function logAdjustment(
+  productId: string,
+  quantity: number,
+  reason: string,
+): Promise<ActionResult> {
+  const admin = await requireAdmin();
+
+  const parsed = adjustmentSchema.safeParse({ productId, quantity, reason });
+  if (!parsed.success) return { ok: false, error: firstFieldError(parsed.error) };
+
+  const data = parsed.data;
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.rpc("log_stock_movement", {
+    p_product_id: data.productId,
+    p_type: "adjustment",
+    p_quantity: data.quantity,
+    p_unit_cost_kobo: null,
+    p_note: data.reason,
+    p_logged_by: admin.id,
+  });
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidateProductViews(data.productId);
   return { ok: true };
 }
 
