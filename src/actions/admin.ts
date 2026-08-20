@@ -300,6 +300,35 @@ export async function saveProduct(formData: FormData): Promise<ActionResult> {
 }
 
 /**
+ * One-click exit from the review queue: pending_review -> published, without
+ * requiring a full form save. The `eq("status", "pending_review")` filter is
+ * the guard — it makes the transition atomic (no fetch-then-update race with
+ * another reviewer or with a concurrent saveProduct) and a one-way door out
+ * of the queue, mirroring saveProduct's rule that a product never routes
+ * back into pending_review once reviewed (see CONTEXT.md).
+ */
+export async function approveProduct(productId: string): Promise<ActionResult> {
+  await requireAdmin();
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("products")
+    .update({ status: "published" })
+    .eq("id", productId)
+    .eq("status", "pending_review")
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Product is not awaiting review" };
+
+  revalidatePath("/admin/products");
+  revalidatePath(`/admin/products/${productId}`);
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
  * Quick stock correction from the products table, without opening the full
  * editor. Routed through log_stock_movement (as an adjustment) rather than
  * writing products.stock directly — otherwise this path would silently
