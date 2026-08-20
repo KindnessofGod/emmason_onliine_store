@@ -71,26 +71,35 @@ export default async function HomePage({
           before, so phones (most of this traffic) never saw a product photo
           in the hero at all. */}
       <section className="relative overflow-hidden bg-brand-700">
-        {/* A real, genuinely joyful photo — not stock-library filler — sits
-            behind the whole hero at every breakpoint, not just on desktop.
-            Full colour, no duotone treatment: an earlier attempt to blend a
-            photo into the brand via grayscale + multiply was rejected as the
-            wrong call, and this photo's own warm sage backdrop already sits
-            close enough to the brand green that it doesn't need one. A
-            gradient scrim protects the headline; the right side, where the
-            deal tiles float on top, is left brighter. */}
+        {/* The lifestyle photo runs on phones only. At lg+ the deal tiles
+            widen and the gradient scrim needed to keep the headline legible
+            crushes the photo down to a sliver on the far edge — the shop
+            owner tried it live and could barely see the person. Rather than
+            fight that with more scrim tuning, desktop keeps the previous
+            solid-brand + SVG wave background, which never had this problem
+            because there was nothing behind it to obscure. */}
         <Image
           src="https://kdpbuuaibwqktqdwzayu.supabase.co/storage/v1/object/public/product-images/site/hero-lifestyle-headphones.jpg"
           alt=""
           fill
           priority
           sizes="100vw"
-          className="pointer-events-none object-cover object-[68%_28%] sm:object-[72%_center] lg:object-[80%_center]"
+          className="pointer-events-none object-cover object-[68%_28%] sm:object-[72%_center] lg:hidden"
         />
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand-900/75 via-brand-900/25 to-transparent lg:bg-gradient-to-r lg:from-brand-900/80 lg:via-brand-800/35 lg:to-transparent"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand-900/75 via-brand-900/25 to-transparent lg:hidden"
         />
+        <svg
+          viewBox="0 0 1200 600"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute inset-0 hidden h-full w-full lg:block"
+          aria-hidden="true"
+        >
+          <path d="M0 420 Q300 340 600 400 T1200 370 V600 H0 Z" fill="#63b824" fillOpacity="0.4" />
+          <path d="M0 480 Q320 410 640 460 T1200 440 V600 H0 Z" fill="#83d243" fillOpacity="0.28" />
+          <circle cx="1010" cy="120" r="200" fill="white" fillOpacity="0.06" />
+        </svg>
 
         <div className="container-page relative grid items-start gap-10 py-12 lg:grid-cols-2 lg:items-center lg:py-20">
           <div className="animate-fade-up">
