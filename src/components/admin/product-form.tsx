@@ -9,6 +9,7 @@ import { koboToNaira } from "@/lib/money";
 import { PRODUCT_STATUSES } from "@/lib/product-status";
 import { specTemplateForCategory } from "@/lib/data/category-spec-templates";
 import { normalizeSpecKey, specLabel, type SpecKey } from "@/lib/data/spec-labels";
+import { slugify } from "@/lib/slug";
 import type { DbCategory, DbProduct } from "@/lib/db-types";
 
 /** One row of the working spec list — every template field and every custom
@@ -31,18 +32,6 @@ function specEntriesFromProduct(specs: Record<string, string> | undefined): Spec
     key,
     value,
   }));
-}
-
-/** Turn a product name into a URL slug as the user types. */
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^\p{L}\p{N}\s-]/gu, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 200);
 }
 
 export function ProductForm({
@@ -472,7 +461,7 @@ export function ProductForm({
  * picked (not deferred to form submit), so staff see the real hosted photo —
  * and any per-file upload failure — immediately rather than at save time.
  */
-function ProductImagePicker({
+export function ProductImagePicker({
   images,
   onChange,
   uploading,
@@ -637,10 +626,10 @@ function ProductImagePicker({
   );
 }
 
-const inputClass =
+export const inputClass =
   "mt-1.5 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500";
 
-function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
+export function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
   return (
     <label htmlFor={htmlFor} className="block text-sm font-medium">
       {children}

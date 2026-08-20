@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Camera, Plus } from "lucide-react";
 import { listAdminProducts } from "@/lib/admin-data";
 import { listAdminCategories } from "@/lib/admin-data";
 import { formatNaira } from "@/lib/money";
@@ -28,13 +28,22 @@ export default async function AdminProductsPage({
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Products</h1>
-        <Link
-          href="/admin/products/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
-        >
-          <Plus className="size-4" aria-hidden />
-          New product
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/admin/products/capture"
+            className="inline-flex items-center gap-2 rounded-lg border border-brand-200 bg-white px-4 py-2 text-sm font-semibold text-brand-700 transition hover:border-brand-400"
+          >
+            <Camera className="size-4" aria-hidden />
+            Capture with camera
+          </Link>
+          <Link
+            href="/admin/products/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
+          >
+            <Plus className="size-4" aria-hidden />
+            New product
+          </Link>
+        </div>
       </div>
 
       <form className="mt-5 flex flex-wrap gap-2">

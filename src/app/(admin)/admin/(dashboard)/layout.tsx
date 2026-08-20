@@ -38,6 +38,12 @@ export default async function AdminLayout({
               Products
             </Link>
             <Link
+              href="/admin/products/capture"
+              className="rounded-lg px-3 py-1.5 transition hover:bg-brand-50"
+            >
+              Capture
+            </Link>
+            <Link
               href="/admin/wholesale-leads"
               className="rounded-lg px-3 py-1.5 transition hover:bg-brand-50"
             >
