@@ -114,6 +114,26 @@ export async function uploadProductImage(formData: FormData): Promise<UploadImag
   return { ok: true, url: data.publicUrl };
 }
 
+/**
+ * Best-effort cleanup when staff remove a photo from the picker before
+ * saving — otherwise the compressed object (uploaded eagerly on pick) sits
+ * in Storage forever with nothing pointing at it. A no-op for URLs this
+ * bucket didn't create (e.g. legacy externally-hosted photos), and failures
+ * here are swallowed: an orphaned object is a storage-hygiene issue, never a
+ * reason to block the admin from editing the product.
+ */
+export async function deleteProductImage(url: string): Promise<void> {
+  await requireAdmin();
+
+  const marker = `/storage/v1/object/public/${PRODUCT_IMAGES_BUCKET}/`;
+  const markerIndex = url.indexOf(marker);
+  if (markerIndex === -1) return;
+
+  const objectPath = url.slice(markerIndex + marker.length);
+  const supabase = createSupabaseAdminClient();
+  await supabase.storage.from(PRODUCT_IMAGES_BUCKET).remove([objectPath]);
+}
+
 const productSchema = z.object({
   id: z.uuid().optional(),
   categoryId: z.uuid("Choose a category"),
@@ -129,7 +149,9 @@ const productSchema = z.object({
   compareAtNaira: z.coerce.number().min(0).optional(),
   stock: z.coerce.number().int().min(0, "Stock cannot be negative"),
   sku: z.string().trim().max(60).optional().or(z.literal("")),
-  imageUrls: z.string().trim().max(2000).optional().or(z.literal("")),
+  // Real Supabase Storage public URLs run ~100+ chars each; a 2000-char cap
+  // would silently fail a save once a product carried more than ~15 photos.
+  imageUrls: z.string().trim().max(20000).optional().or(z.literal("")),
   warrantyMonths: z.coerce.number().int().min(0).max(120).optional(),
   status: z.enum(["pending_review", "published", "unpublished"]),
   isFeatured: z.boolean(),

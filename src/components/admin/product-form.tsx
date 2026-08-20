@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, Loader2, Trash2, UploadCloud } from "lucide-react";
-import { saveProduct, uploadProductImage } from "@/actions/admin";
+import { deleteProductImage, saveProduct, uploadProductImage } from "@/actions/admin";
 import { koboToNaira } from "@/lib/money";
 import { PRODUCT_STATUSES } from "@/lib/product-status";
 import type { DbCategory, DbProduct } from "@/lib/db-types";
@@ -300,11 +300,15 @@ function ProductImagePicker({
   onUploadingChange,
 }: {
   images: string[];
-  onChange: (images: string[]) => void;
+  // Accepts a functional updater (like useState's setter does) so a batch
+  // upload that finishes after the admin has already reordered or removed a
+  // photo folds onto the *current* array instead of clobbering it with a
+  // stale one closed over when the upload started.
+  onChange: (update: string[] | ((prev: string[]) => string[])) => void;
   uploading: boolean;
   onUploadingChange: (uploading: boolean) => void;
 }) {
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadErrors, setUploadErrors] = useState<string[]>([]);
 
   async function handleFilesSelected(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
@@ -312,12 +316,13 @@ function ProductImagePicker({
     if (files.length === 0) return;
 
     onUploadingChange(true);
-    setUploadError(null);
+    setUploadErrors([]);
 
     // Sequential, not Promise.all: keeps uploaded URLs in the same order the
     // files were picked in, and a phone on a slow connection isn't asked to
     // push several multi-megabyte uploads at once.
     const uploaded: string[] = [];
+    const errors: string[] = [];
     for (const file of files) {
       const body = new FormData();
       body.set("file", file);
@@ -325,24 +330,31 @@ function ProductImagePicker({
       if (result.ok) {
         uploaded.push(result.url);
       } else {
-        setUploadError(result.error);
+        errors.push(`${file.name || "A photo"}: ${result.error}`);
       }
     }
 
-    if (uploaded.length > 0) onChange([...images, ...uploaded]);
+    if (uploaded.length > 0) onChange((prev) => [...prev, ...uploaded]);
+    if (errors.length > 0) setUploadErrors(errors);
     onUploadingChange(false);
   }
 
   function move(index: number, direction: -1 | 1) {
-    const target = index + direction;
-    if (target < 0 || target >= images.length) return;
-    const next = [...images];
-    [next[index], next[target]] = [next[target], next[index]];
-    onChange(next);
+    onChange((prev) => {
+      const target = index + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
   }
 
   function remove(index: number) {
-    onChange(images.filter((_, i) => i !== index));
+    const removedUrl = images[index];
+    onChange((prev) => prev.filter((_, i) => i !== index));
+    // Best-effort: clean up the compressed object left in Storage now that
+    // nothing points at it. Never blocks the removal itself.
+    if (removedUrl) void deleteProductImage(removedUrl);
   }
 
   return (
@@ -430,10 +442,12 @@ function ProductImagePicker({
         className="sr-only"
       />
 
-      {uploadError && (
-        <p role="alert" className="mt-2 text-xs text-red-700">
-          {uploadError}
-        </p>
+      {uploadErrors.length > 0 && (
+        <ul role="alert" className="mt-2 space-y-0.5 text-xs text-red-700">
+          {uploadErrors.map((message) => (
+            <li key={message}>{message}</li>
+          ))}
+        </ul>
       )}
 
       <p className="mt-1 text-xs text-ink-500">
