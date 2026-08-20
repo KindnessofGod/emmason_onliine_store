@@ -22,7 +22,6 @@ const PATHS = [
   ["/en/cart", "cart"],
   ["/en/checkout", "checkout"],
   ["/en/sell", "sell"],
-  ["/en/sell/register", "register"],
   ["/en/contact", "contact"],
 ];
 

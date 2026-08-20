@@ -25,7 +25,6 @@ export type OrderStatus =
 export type FulfilmentMethod = "pickup" | "delivery";
 export type PaymentMethodDb = "on-delivery" | "transfer" | "card";
 export type ProductCondition = "new" | "uk-used" | "refurbished";
-export type ApplicationStatus = "pending" | "approved" | "rejected";
 
 export interface DbCategory {
   id: string;
@@ -126,21 +125,12 @@ export interface OrderWithItems extends Order {
   items: OrderItem[];
 }
 
-export interface SellerApplicationRow {
+export interface WholesaleLeadRow {
   id: string;
-  reference: string;
-  status: ApplicationStatus;
-  business_name: string;
-  contact_name: string;
-  phone: string;
-  email: string;
-  address: string;
-  city: string;
-  state: string;
-  nin_masked: string | null;
-  categories: string[];
-  about: string | null;
-  review_notes: string | null;
-  reviewed_at: string | null;
+  name: string;
+  whatsapp: string;
+  locale: string | null;
+  source: string;
+  contacted: boolean;
   created_at: string;
 }

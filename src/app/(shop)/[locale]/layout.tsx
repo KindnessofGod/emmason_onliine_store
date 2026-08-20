@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CartProvider } from "@/components/cart-provider";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { WholesalePopup } from "@/components/wholesale-popup";
 import { getCategories } from "@/lib/data";
 import { getDictionary, isLocale, locales, type Locale } from "@/lib/i18n";
 import { site } from "@/lib/site";
@@ -80,6 +81,7 @@ export default async function LocaleLayout({
             {children}
           </main>
           <Footer locale={typedLocale} dict={dict} categories={categories} />
+          <WholesalePopup locale={typedLocale} dict={dict} />
         </CartProvider>
       </body>
     </html>

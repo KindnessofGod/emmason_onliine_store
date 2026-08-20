@@ -31,3 +31,14 @@ export function whatsappLink(message?: string): string {
     ? `https://wa.me/${number}?text=${encodeURIComponent(message)}`
     : `https://wa.me/${number}`;
 }
+
+/**
+ * Invite link for Emmason's WhatsApp Channel — where wholesale leads are
+ * meant to land after they claim their 5% off. Unset until the shop owner
+ * creates the channel (WhatsApp app → Updates tab → + → New channel) and
+ * adds `NEXT_PUBLIC_WHATSAPP_CHANNEL_URL`; until then this is null and
+ * callers fall back to a prefilled WhatsApp DM instead.
+ */
+export function whatsappChannelUrl(): string | null {
+  return process.env.NEXT_PUBLIC_WHATSAPP_CHANNEL_URL || null;
+}

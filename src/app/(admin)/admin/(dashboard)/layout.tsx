@@ -38,10 +38,10 @@ export default async function AdminLayout({
               Products
             </Link>
             <Link
-              href="/admin/applications"
+              href="/admin/wholesale-leads"
               className="rounded-lg px-3 py-1.5 transition hover:bg-brand-50"
             >
-              Applications
+              Wholesale leads
             </Link>
           </nav>
 

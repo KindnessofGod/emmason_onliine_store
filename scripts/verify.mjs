@@ -96,28 +96,18 @@ console.log(`   order reference on page: ${ref ? ref[0] : "NONE"}`);
 if (alerts.length) console.log(`   alerts: ${JSON.stringify(alerts.slice(0, 2))}`);
 await shot("m06-order-placed");
 
-// --- 6. Seller registration persists ---------------------------------------
-console.log("6. Seller registration");
-await page.goto(`${BASE}/en/sell/register`, { waitUntil: "networkidle" });
-await page.fill("#businessName", "Playwright Test Gadgets");
-await page.fill("#contactName", "Test Contact");
-await page.fill("#sellerPhone", "08039998877");
-await page.fill("#sellerEmail", "test@example.com");
-await page.fill("#sellerAddress", "12 Test Road");
-await page.fill("#sellerCity", "Owerri");
-await page.selectOption("#sellerState", "Imo").catch(() => {});
-await page.fill("#nin", "12345678901").catch(() => {});
-await page.locator('input[type="checkbox"]').first().check().catch(() => {});
-const terms = page.locator('input[type="checkbox"]').last();
-await terms.check().catch(() => {});
+// --- 6. Wholesale lead submits -----------------------------------------
+console.log("6. Wholesale lead");
+await page.goto(`${BASE}/en/sell`, { waitUntil: "networkidle" });
+await page.getByLabel(/your name/i).fill("Playwright Test Wholesaler");
+await page.getByLabel(/whatsapp number/i).fill("08039998877");
 await page.waitForTimeout(300);
-await page.getByRole("button", { name: /submit|apply/i }).last().click();
-await page.waitForTimeout(5000);
-const sellerBody = await page.locator("body").innerText();
-const selRef = sellerBody.match(/SEL-[A-Z0-9]{6}/);
-console.log(`   application reference: ${selRef ? selRef[0] : "NONE"}`);
-console.log(`   NIN masked on screen: ${/•{6,}\d{3}/.test(sellerBody)}`);
-await shot("m07-seller-applied");
+await page.getByRole("button", { name: /claim my 5% off/i }).click();
+await page.waitForTimeout(3000);
+const wholesaleBody = await page.locator("body").innerText();
+console.log(`   success card shown: ${/you're in/i.test(wholesaleBody)}`);
+console.log(`   error shown instead: ${/could not submit/i.test(wholesaleBody)}`);
+await shot("m07-wholesale-lead");
 
 // --- 7. Admin ---------------------------------------------------------------
 console.log("7. Admin");
@@ -129,11 +119,11 @@ await page.waitForURL((u) => !u.pathname.includes("login"), { timeout: 20000 });
 await page.waitForTimeout(1500);
 await shot("m08-admin-overview");
 
-await page.goto(`${BASE}/admin/applications`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/admin/wholesale-leads`, { waitUntil: "networkidle" });
 await page.waitForTimeout(600);
-const appsText = await page.locator("body").innerText();
-console.log(`   application visible in admin: ${appsText.includes("Playwright Test Gadgets")}`);
-await shot("m09-admin-applications");
+const leadsText = await page.locator("body").innerText();
+console.log(`   lead visible in admin: ${leadsText.includes("Playwright Test Wholesaler")}`);
+await shot("m09-admin-wholesale-leads");
 
 await page.goto(`${BASE}/admin/orders`, { waitUntil: "networkidle" });
 await page.waitForTimeout(600);
