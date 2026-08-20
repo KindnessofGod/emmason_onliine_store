@@ -8,6 +8,7 @@ import {
   getOrderByReference,
   placeOrder,
 } from "@/lib/orders";
+import { sendOrderAlertEmail } from "@/lib/order-alert-email";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { storeConfig } from "@/lib/store-config";
 import { buildOrderMessage, whatsAppLink } from "@/lib/whatsapp";
@@ -125,6 +126,17 @@ export async function submitCheckout(input: CheckoutInput): Promise<CheckoutResu
       ok: false,
       error: error instanceof Error ? error.message : "Could not place your order.",
     };
+  }
+
+  // Alert the shop owner the moment the order exists, regardless of how it
+  // gets paid for — a failed or missing send must never affect checkout, so
+  // any error (including a missing RESEND_API_KEY/ORDER_ALERT_EMAIL) is
+  // logged and swallowed here.
+  try {
+    const orderForAlert = await getOrderByReference(placed.reference);
+    if (orderForAlert) await sendOrderAlertEmail(orderForAlert);
+  } catch (error) {
+    console.error("Order alert email failed", error);
   }
 
   if (isCard) {
