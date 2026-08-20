@@ -181,24 +181,46 @@ export async function saveProduct(formData: FormData): Promise<ActionResult> {
   return { ok: true };
 }
 
-/** Quick stock correction from the products table, without opening the editor. */
+/**
+ * Quick stock correction from the products table, without opening the full
+ * editor. Routed through log_stock_movement (as an adjustment) rather than
+ * writing products.stock directly — otherwise this path would silently
+ * bypass the Stock Movement ledger and its "full history" guarantee.
+ */
 export async function adjustStock(
   productId: string,
   stock: number,
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   if (!Number.isInteger(stock) || stock < 0) {
     return { ok: false, error: "Stock must be zero or a whole number" };
   }
 
   const supabase = createSupabaseAdminClient();
-  const { error } = await supabase
-    .from("products")
-    .update({ stock })
-    .eq("id", productId);
 
-  if (error) return { ok: false, error: error.message };
+  const { data: current, error: fetchError } = await supabase
+    .from("products")
+    .select("stock")
+    .eq("id", productId)
+    .maybeSingle();
+
+  if (fetchError) return { ok: false, error: fetchError.message };
+  if (!current) return { ok: false, error: "Product not found" };
+
+  const delta = stock - current.stock;
+  if (delta !== 0) {
+    const { error } = await supabase.rpc("log_stock_movement", {
+      p_product_id: productId,
+      p_type: "adjustment",
+      p_quantity: delta,
+      p_unit_cost_kobo: null,
+      p_note: "Quick correction from the products list",
+      p_logged_by: admin.id,
+    });
+
+    if (error) return { ok: false, error: error.message };
+  }
 
   revalidatePath("/admin/products");
   revalidatePath("/admin");

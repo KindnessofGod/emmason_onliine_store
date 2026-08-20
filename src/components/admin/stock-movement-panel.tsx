@@ -110,7 +110,8 @@ export function StockMovementPanel({
             />
             {mode === "adjustment" && (
               <p className="mt-1 text-xs text-ink-500">
-                Positive if a count turned up more stock, negative for damage or loss.
+                Added to the current stock — not the new total. Positive if a count
+                turned up more stock, negative for damage or loss.
               </p>
             )}
           </div>
