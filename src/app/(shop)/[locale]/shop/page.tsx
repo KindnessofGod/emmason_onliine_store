@@ -89,7 +89,7 @@ export default async function ShopPage({
         ]}
       />
 
-      <div className="mb-7">
+      <div className="mb-5 lg:mb-7">
         <h1 className="text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">
           {search
             ? interpolate(dict.shop.searchResultsFor, { query: search })
@@ -104,7 +104,7 @@ export default async function ShopPage({
         </p>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[220px_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[220px_1fr] lg:gap-8">
         <Suspense fallback={<div aria-hidden="true" className="h-10" />}>
           <ShopFilters
             locale={locale}
@@ -115,7 +115,7 @@ export default async function ShopPage({
         </Suspense>
 
         <div>
-          <div className="mb-5 flex items-center justify-between gap-3">
+          <div className="mb-3 flex items-center justify-between gap-3 lg:mb-5">
             <p className="hidden text-sm text-ink-500 lg:block">
               {pluralize(
                 results.length,

@@ -123,7 +123,7 @@ export default async function CategoryPage({
             <circle cx="1050" cy="60" r="130" fill="white" fillOpacity="0.07" />
           </svg>
         )}
-        <div className="container-page relative py-12">
+        <div className="container-page relative py-8 sm:py-12">
           {!category.showcaseImage && (
             <span className="text-4xl" aria-hidden="true">
               {category.glyph}
@@ -147,7 +147,7 @@ export default async function CategoryPage({
           ]}
         />
 
-        <div className="grid gap-8 lg:grid-cols-[220px_1fr]">
+        <div className="grid gap-4 lg:grid-cols-[220px_1fr] lg:gap-8">
           <Suspense fallback={<div aria-hidden="true" className="h-10" />}>
             <ShopFilters
               locale={locale}
@@ -159,7 +159,7 @@ export default async function CategoryPage({
           </Suspense>
 
           <div>
-            <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="mb-3 flex items-center justify-between gap-3 lg:mb-5">
               <p className="text-sm text-ink-500">
                 {pluralize(results.length, dict.shop.resultsCountOne, dict.shop.resultsCount)}
               </p>

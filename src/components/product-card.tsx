@@ -104,7 +104,13 @@ export function ProductGrid({
   dict: Dictionary;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    // Single column below 640px: two columns squeezed a product photo down
+    // to ~171px wide on a phone, which read fine for a plain cable shot but
+    // turned anything with packaging text (a tool kit box, a charging kit
+    // pouch) into an illegible thumbnail — the shop owner's "barely see the
+    // product" complaint, confirmed with real screenshots. A full-width card
+    // roughly doubles that.
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {products.map((product) => (
         <ProductCard key={product.id} product={product} locale={locale} dict={dict} />
       ))}
