@@ -39,9 +39,16 @@ Five locales, each fully translated rather than machine-stubbed:
 | `fr` | Français |
 
 Every route is locale-prefixed (`/yo/shop`, `/ha/product/nokia-105-dual-sim`).
-`/` redirects via `src/proxy.ts`, which prefers the `emmason_locale` cookie set
-by the switcher and otherwise negotiates from `Accept-Language`. Switching
-language keeps you on the same page.
+`/` redirects via `src/proxy.ts`, which picks the locale in this order: the
+`emmason_locale` cookie set by the switcher (an explicit choice always
+wins); failing that, the visitor's IP location via Vercel's `geolocation()`
+— French for a Francophone country, Hausa/Yorùbá/Igbo for a Nigerian state
+with a clear majority in that language; failing that (no geo data, e.g.
+local dev, or a country/state this store has no mapping for), `Accept-Language`
+negotiation. Geo outranks the browser header deliberately: most phones in
+Nigeria ship with an English OS regardless of the owner's spoken language, so
+Accept-Language alone would serve nearly everyone English. Switching language
+keeps you on the same page.
 
 English is the source of truth: `src/lib/i18n/dictionaries/en.ts` defines the
 `Dictionary` type and the other four are typed against it, so a missing key
@@ -67,9 +74,13 @@ delivery** priced per state, with free delivery over a configurable threshold.
 Pay by card through Paystack, or by transfer / on delivery with the order handed
 to WhatsApp pre-filled.
 
-**Marketplace** — sellers apply, Emmason approves from `/admin/applications`,
-and approval creates the seller record. NIN is validated as 11 digits and stored
-**masked only** (`••••••••901`); the full number is never persisted.
+**Marketplace** — Emmason stopped recruiting new third-party sellers; the
+sellers already onboarded keep their listings, shop pages and product
+attribution. In their place, `/sell` and a site-wide popup pitch **wholesale
+buying from Emmason**: a name and WhatsApp number gets a retailer or
+wholesaler 5% off their first bulk order and an invite to Emmason's WhatsApp
+Channel. Leads land in `/admin/wholesale-leads`, no approval step. See
+`HANDOFF.md` for the full story.
 
 **Admin** — `/admin`, gated by Supabase auth plus an `admins` roster row.
 Revenue and low-stock overview, orders with status transitions, product CRUD
@@ -141,12 +152,15 @@ mood. Two concrete changes follow from that:
   gradient/glyph is the fallback for a category that hasn't had one chosen
   yet (`categories.showcase_image_url`, migration `0008`), not the default
   look.
-- **The hero itself sits over a real lifestyle photo**, full colour, at
-  every breakpoint — a woman genuinely enjoying music on headphones, not a
-  flat brand-green background or a desaturated/blended stock photo (an
-  earlier duotone attempt was tried and rejected). See `HANDOFF.md` for the
-  full story, including two more sourced lifestyle photos held in Storage
-  for future use and not yet wired into any page.
+- **The hero sits over a real lifestyle photo on phones and tablets** — a
+  woman genuinely enjoying music on headphones, not a flat brand-green
+  background or a desaturated/blended stock photo (an earlier duotone
+  attempt was tried and rejected). Desktop shows the original solid-brand +
+  SVG wave background instead: shown live, the photo read as a wash of
+  green with the person barely visible once the deal tiles and legibility
+  scrim were both in the frame. See `HANDOFF.md` for the full story,
+  including two more sourced lifestyle photos held in Storage for future use
+  and not yet wired into any page.
 
 ## Environment
 

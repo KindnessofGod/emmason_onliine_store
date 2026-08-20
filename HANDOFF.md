@@ -23,8 +23,10 @@ TikTok `@emmasongadgets`.
 Two things make it more than a plain storefront:
 
 1. **It speaks five languages** — English, Yorùbá, Igbo, Hausa, French.
-2. **It is a marketplace.** Third-party sellers apply, get approved, and list
-   alongside Emmason's own stock.
+2. **It is a marketplace**, though no longer a growing one by design: the
+   sellers already onboarded keep their listings and shop pages, but the
+   site stopped recruiting new ones (§5, Wholesale pivot) — it now pitches
+   wholesale/bulk buying from Emmason instead, with a 5%-off lead-gen popup.
 
 Customers pay by card (Paystack), bank transfer, or on delivery, and can
 either collect from the shop or have it delivered nationwide.
@@ -36,7 +38,7 @@ These came from the user directly and are binding:
 | Question | Answer |
 | --- | --- |
 | Languages | English + Yorùbá + Igbo + **Hausa** + **French** (5) |
-| Single store or marketplace? | **Marketplace with seller onboarding** |
+| Single store or marketplace? | **Marketplace, but no longer recruiting new sellers** — existing sellers keep their listings and shop pages; the site now pitches wholesale/bulk buying instead of "become a seller" (see §5, Wholesale pivot) |
 | Fulfilment | **Store pickup + nationwide delivery** |
 | Payments | **Paystack**, plus a WhatsApp ordering option |
 | Market / currency | **Nigeria only, ₦ (NGN)** |
@@ -45,22 +47,17 @@ These came from the user directly and are binding:
 
 ### Still open — needs the user
 
-1. **NIN.** Seller registration captures it. The user mentioned NIN in their
-   original voice brief but did *not* tick it when asked. It was built anyway
-   and flagged; **they have still not answered.** It is now stored **masked
-   only** (`••••••••901`) — the full 11 digits are validated in the form and
-   never persisted, which lowers the stakes considerably. If they want it gone:
-   `src/lib/nigeria.ts` (`isValidNin`, `maskNin`), the NIN block in
-   `src/components/seller-registration-form.tsx`, the `nin`/`ninHelp`/
-   `invalidNin` dictionary keys, and the `nin_masked` column.
-2. **Product photography.** Still the single biggest visible gap.
-3. **Seller dashboard scope** — is it "sellers log in and manage their own
-   listings", or "they apply, Emmason lists it for them"? Changes the next
-   phase enormously.
-4. **Nigerian Pidgin** as a sixth locale — offered once, never answered.
-5. **Translation review.** The Yorùbá, Igbo and Hausa strings were written
-   without a native speaker. They are good-faith, not verified. Get a speaker
-   to read them before launch.
+1. **Nigerian Pidgin** as a sixth locale — offered once, never answered.
+2. **Translation review.** The Yorùbá, Igbo, Hausa and French strings were
+   written without a native speaker. They are good-faith, not verified. Get a
+   speaker to read them before launch — this now includes the new `wholesale`
+   dictionary section (§5, Wholesale pivot).
+3. **WhatsApp Channel invite link.** The wholesale popup/page send leads to
+   join Emmason's WhatsApp Channel after they claim their 5% off, but no
+   channel exists yet. See §5 and §7 for what to do.
+
+~~NIN.~~ **Moot.** Seller registration (and the NIN field it captured) was
+removed outright in the wholesale pivot — see §5.
 
 ## 3. Architecture — the parts that matter
 
@@ -223,7 +220,7 @@ and sign in at `/admin/login`.
 
 **Shop** (all under `/[locale]/`, 5 locales): home, shop with URL-held filters
 and sort, category, product (specs, warranty, seller attribution, JSON-LD),
-cart, checkout, deals, sell landing, seller registration, public seller pages,
+cart, checkout, deals, a wholesale landing page (`/sell`), public seller pages,
 about, contact, and the policy pages.
 
 **Checkout** collects contact details, pickup-vs-delivery, and payment method.
@@ -231,8 +228,9 @@ Card goes to Paystack; transfer and pay-on-delivery record the order and open a
 WhatsApp thread pre-filled with everything Emmason needs.
 
 **Admin** (`/admin`): overview with revenue and low stock, order list and detail
-with status transitions, product CRUD with inline stock editing, and a seller
-application queue where approving an application **creates the seller**.
+with status transitions, product CRUD with inline stock editing, and a
+wholesale-leads list (name, WhatsApp number, source, a contacted toggle — no
+approval step, since a lead isn't an account).
 
 **Homepage design.** The plain green-gradient hero and the emoji-glyph
 category grid were both replaced after the shop owner said directly they
@@ -327,13 +325,177 @@ The raw multi-megabyte source `.jpeg` files were removed from the repo
 (`images/`) once processed, matching the existing convention of hosting
 photography only via Supabase Storage, never committing raw binaries.
 
+**Hero photo, mobile only.** Shown live on a real desktop screen, the hero
+photo above read as a wash of green with the person barely visible — the
+gradient scrim needed to keep the headline legible over the deal tiles
+crushed the photo down to a sliver at the right edge. Rather than keep tuning
+the scrim, desktop (`lg:` and up) now shows the original solid-brand + SVG
+wave background again; the photo still renders full colour on phones and
+tablets, where it looked right from the start. Both live side by side in
+`src/app/(shop)/[locale]/page.tsx` — `<Image>` and the gradient scrim are
+`lg:hidden`, the `<svg>` is `hidden lg:block`.
+
+**Mobile menu was rendering empty.** Tapping the hamburger showed only a thin
+white strip at the top of the screen instead of the full drawer. Root cause:
+`<header>` carries `backdrop-blur` (`backdrop-filter`), and the CSS spec
+makes any element with `backdrop-filter`, `filter`, `transform` or
+`will-change` a new *containing block* for `position: fixed` descendants —
+so the drawer's `fixed inset-0` was being measured against the header's own
+~100px box instead of the viewport. Fixed in `src/components/header.tsx` by
+`createPortal`-ing the drawer to `document.body`, clear of that containing
+block. Worth remembering for any other `fixed`-positioned overlay added
+under `<header>` later — the wholesale popup below was portalled from the
+start for exactly this reason.
+
+**Product cards were too small on phones.** The shop owner's complaint —
+"you can barely see the product" — was investigated with two parallel
+agents taking real screenshots and pixel measurements across every page that
+renders `ProductGrid` (`src/components/product-card.tsx`). Two real causes,
+both fixed:
+
+- `ProductGrid` jumped straight from 2 columns to 4 at the `lg` breakpoint,
+  never dropping below 2 even on the narrowest phones — a ~171px-wide product
+  image at 390px viewport width, illegible for anything with packaging text
+  (a tool kit box, a charging kit pouch). Now `grid-cols-1 sm:grid-cols-2
+  lg:grid-cols-4` — full-width on phones, roughly doubling image size where
+  it's actually being viewed from.
+- On category pages specifically (`category/[slug]/page.tsx`), the photo
+  hero banner plus three stacked chrome blocks (breadcrumbs, filters button,
+  results-count/sort row) pushed the grid below the fold on a real phone's
+  visible viewport. Trimmed the hero's mobile padding and the gaps between
+  those blocks; `/shop` got the same spacing treatment for consistency since
+  it shares the same `ShopFilters`/`ProductGrid` layout.
+
+Desktop is visually unchanged in both cases.
+
+**Wholesale pivot.** The shop owner said directly: "we are not looking for
+sellers on our site, what we are looking for are wholesalers or retailers
+who want to buy from us" — plus a specific ask, a popup offering 5% off a
+first wholesale order in exchange for a name, WhatsApp number, and joining
+Emmason's WhatsApp Channel. Scope was confirmed explicitly before touching
+anything, since this meant retiring a whole existing subsystem: **retire the
+"become a seller" recruitment flow — nav, landing page, registration form,
+admin queue — and reposition that space around wholesalers/retailers buying
+from Emmason instead**, while leaving *existing* sellers' data alone (their
+shop pages, "Sold by" attribution on products, the homepage/`/sell`
+"Verified sellers" section) since that's already-onboarded sellers'
+contribution to the live catalogue, not new recruitment — ripping it out
+would touch checkout and orders for no reason anyone asked for.
+
+What changed:
+
+- **New table, `wholesale_leads`** (migration `0009_wholesale_leads.sql`):
+  name, WhatsApp number, locale, source (`popup` | `page`), a `contacted`
+  flag. No approval step, no generated reference number, no relationship to
+  `sellers` — a lead is just a lead. `seller_applications` and `sellers` are
+  left in place untouched; `seller_applications` simply stops receiving new
+  rows.
+- **`src/actions/wholesale.ts`** — `submitWholesaleLead()`, rate-limited the
+  same way `submitSellerApplication()` was (5/hour per IP), zod-validated,
+  writes through the service-role admin client like every other write path
+  in this app.
+- **`src/components/wholesale-form.tsx`** — the two-field form (name,
+  WhatsApp), shared between the popup and the `/sell` page so they can't
+  drift apart. Success state offers a "Join our WhatsApp channel" button if
+  `NEXT_PUBLIC_WHATSAPP_CHANNEL_URL` is set, otherwise falls back to a
+  prefilled WhatsApp DM (`whatsappLink()` in `src/lib/site.ts`) so the flow
+  is still fully functional with zero extra setup.
+- **`src/components/wholesale-popup.tsx`** — site-wide lead-gen popup,
+  mounted in the shop layout, shown once (`localStorage`-gated) after a 4s
+  delay, suppressed on `/cart`, `/checkout` and `/sell` (mid-purchase is the
+  wrong moment to interrupt; `/sell` already carries the same form inline).
+  Portalled to `document.body` for the `backdrop-blur` containing-block
+  reason above.
+- **`/sell` page rewritten** from a seller-recruitment pitch to a wholesale
+  landing page: hero with the form inline, three benefit tiles, a 3-step
+  "how it works." `src/components/seller-registration-form.tsx` and the
+  `/sell/register` route are deleted outright — the new form has no NIN,
+  no business address, no category picker, so there was nothing to keep.
+- **Admin**: `/admin/applications` (seller approval queue) replaced by
+  `/admin/wholesale-leads` — a flat list with a WhatsApp deep link per lead
+  and a contacted/not-contacted toggle (`src/actions/admin.ts`:
+  `listWholesaleLeads`, `setLeadContacted`).
+- **Dictionary**: the `seller` namespace was trimmed down to only what
+  existing sellers' own shop pages still use (`shopTitle`, `memberSince`,
+  `productCount(One)`, `verifiedSeller`, `pendingSeller`); everything
+  recruitment-specific moved to a new `wholesale` namespace, translated by
+  hand into all 5 locales alongside it. `nav.sell`, `footer.sellWithUs`,
+  `home.heroCtaSecondary`, `home.sellTitle/sellBody/sellCta` and the
+  `info.q3/a3` FAQ entry were repointed from "become a seller" copy to
+  "buy wholesale" copy, same keys, new values, in all 5 locales.
+
+**Not done yet — needs the shop owner:**
+
+1. **The `0009_wholesale_leads.sql` migration has not been applied to the
+   live database.** This session's Supabase MCP connection is authenticated
+   to a different account than the one hosting the real project (ref
+   `kdpbuuaibwqktqdwzayu` — see §8, Environment gotchas, for how that
+   project was originally provisioned on a second account specifically to
+   avoid touching the user's other projects). Apply it via the Supabase
+   dashboard's SQL editor, or `supabase db push` with the project linked
+   locally. Until then, the popup and `/sell` form submit cleanly through
+   validation but the insert fails with a friendly "Could not submit your
+   details" error — verified live against the production database, not
+   simulated.
+2. **No WhatsApp Channel exists yet.** Create one (WhatsApp app → Updates
+   tab → **+** → New channel) and set `NEXT_PUBLIC_WHATSAPP_CHANNEL_URL` in
+   Vercel's environment variables. Until then every successful lead falls
+   back to the prefilled-DM path, which works but is a weaker funnel than
+   the intended one-tap channel join.
+
+**Locale auto-detection by geography.** The shop owner asked for French to
+be served automatically to visitors from Francophone countries, and Hausa to
+visitors from Hausa-speaking Nigerian regions — the existing
+`Accept-Language` negotiation in `src/proxy.ts` doesn't do this well, since
+most phones in Nigeria ship with an English OS regardless of the owner's
+spoken language, so it was serving nearly everyone English by default.
+Added `@vercel/functions`'s `geolocation(request)` (the `next/server`
+`NextRequest.geo`/`.ip` it replaces were removed in Next 15 — confirmed
+against `node_modules/next/dist/docs` per this repo's own `AGENTS.md`
+instruction before writing any of this) as a new tier in the locale
+precedence, ranked **above** `Accept-Language` and below the explicit
+`emmason_locale` cookie:
+
+- **Country → French** for a fixed list of Francophone countries most
+  likely to actually reach this store (France plus West/Central African
+  neighbours — Benin, Burkina Faso, Cameroon, CAR, Chad, Congo, DR Congo,
+  Côte d'Ivoire, Djibouti, Gabon, Guinea, Mali, Niger, Senegal, Togo).
+  Officially-bilingual countries (Canada, Belgium, Switzerland) are
+  deliberately excluded — English is at least as likely to be right there.
+- **Nigerian state → Hausa/Yorùbá/Igbo** using `countryRegion` (the bare
+  ISO 3166-2 subdivision code Vercel reports, e.g. `"KN"` for Kano) for
+  states with a clear ethnic-language majority — the user only asked for
+  Hausa by name, but the same mechanism extends to Yorùbá and Igbo (already
+  supported locales) for free, so leaving them out would have been an
+  inconsistent half-implementation. Ethnically-mixed states (Borno,
+  Adamawa, the Middle Belt) are deliberately left unmapped rather than
+  guessed, falling through to `Accept-Language`.
+- Verified against the running dev server by sending `x-vercel-ip-country`
+  / `x-vercel-ip-country-region` headers directly (these headers only exist
+  for real once deployed on Vercel's edge network, so this is the only way
+  to test the logic locally) — Senegal → `/fr`, Kano → `/ha`, Lagos → `/yo`,
+  Imo → `/ig`, Borno (unmapped) and the US both correctly fall through to
+  `/en`, and an explicit `emmason_locale` cookie still wins over a
+  contradicting geo signal in every case.
+
+**Known trade-off, accepted deliberately**: IP location is a proxy for
+language, not a certainty — a US tourist geolocated to Kano gets served
+Hausa by default. The language switcher is always visible and one tap
+away, and a manual switch is remembered via the cookie for that visitor
+going forward, which is the same trade-off most geo-localised sites make.
+
 ## 6. Verified by driving a real browser
 
 `node scripts/verify.mjs` (dev server running) exercises: all five locales and
 their `<html lang>`, the catalogue coming from Postgres, language switching
-preserving the page, a real order through checkout, seller registration, and
-admin sign-in through to the application queue. It reports any console or page
-error. Last run: **zero errors**, order `EMM-BBBCB1`, application `SEL-32FAE2`.
+preserving the page, a real order through checkout, a wholesale lead
+submission, and admin sign-in through to the wholesale-leads list. It reports
+any console or page error. Last run (before the wholesale pivot, still
+representative of the rest of the flow): **zero errors**, order `EMM-BBBCB1`.
+The wholesale-lead step is expected to report `error shown instead: true`
+until migration `0009_wholesale_leads.sql` is applied to the live database
+(§5, Wholesale pivot) — that's the form's validated error path working
+correctly, not a bug.
 
 `node scripts/mobile-audit.mjs` is the second harness. It drives the storefront
 at 360, 390 and 414px and reports horizontal overflow, tap targets under 44px
