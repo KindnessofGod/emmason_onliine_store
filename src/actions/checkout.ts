@@ -128,17 +128,6 @@ export async function submitCheckout(input: CheckoutInput): Promise<CheckoutResu
     };
   }
 
-  // Alert the shop owner the moment the order exists, regardless of how it
-  // gets paid for — a failed or missing send must never affect checkout, so
-  // any error (including a missing RESEND_API_KEY/ORDER_ALERT_EMAIL) is
-  // logged and swallowed here.
-  try {
-    const orderForAlert = await getOrderByReference(placed.reference);
-    if (orderForAlert) await sendOrderAlertEmail(orderForAlert);
-  } catch (error) {
-    console.error("Order alert email failed", error);
-  }
-
   if (isCard) {
     try {
       const transaction = await initializeTransaction({
@@ -154,6 +143,17 @@ export async function submitCheckout(input: CheckoutInput): Promise<CheckoutResu
       });
 
       await attachPaystackReference(placed.orderId, transaction.reference);
+
+      // Only alert the owner once payment has actually started — sending it
+      // any earlier would mean a failed Paystack init (below) still emails a
+      // "new order" for one that's about to be cancelled. A failed or
+      // missing send must never affect checkout, so this is best-effort.
+      try {
+        const orderForAlert = await getOrderByReference(placed.reference);
+        if (orderForAlert) await sendOrderAlertEmail(orderForAlert);
+      } catch (error) {
+        console.error("Order alert email failed", error);
+      }
 
       return {
         ok: true,
@@ -180,6 +180,15 @@ export async function submitCheckout(input: CheckoutInput): Promise<CheckoutResu
   const order = await getOrderByReference(placed.reference);
   if (!order) {
     return { ok: true, kind: "manual", reference: placed.reference };
+  }
+
+  // The order is fully placed at this point (no equivalent "payment init"
+  // step to fail first, unlike the card path above), so alert the owner now.
+  // A failed or missing send must never affect checkout — best-effort.
+  try {
+    await sendOrderAlertEmail(order);
+  } catch (error) {
+    console.error("Order alert email failed", error);
   }
 
   return {
