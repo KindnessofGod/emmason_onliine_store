@@ -4,7 +4,6 @@ import { listAdminProducts } from "@/lib/admin-data";
 import { listAdminCategories } from "@/lib/admin-data";
 import { formatNaira } from "@/lib/money";
 import { StockEditor } from "@/components/admin/stock-editor";
-import { ApproveProductButton } from "@/components/admin/approve-product-button";
 import { PendingReviewBadge } from "@/components/admin/pending-review-badge";
 import { PRODUCT_STATUSES } from "@/lib/product-status";
 
@@ -138,12 +137,10 @@ export default async function AdminProductsPage({
                             Hidden
                           </span>
                         )}
-                        {product.status === "pending_review" && (
-                          <>
-                            <PendingReviewBadge />
-                            <ApproveProductButton productId={product.id} />
-                          </>
-                        )}
+                        {/* No direct-approve action here on purpose — approving
+                            requires opening the product first, so staff always
+                            see the AI-filled fields before publishing them. */}
+                        {product.status === "pending_review" && <PendingReviewBadge />}
                         {product.is_featured && (
                           <span className="rounded-full bg-flash-500/10 px-2 py-0.5 text-xs font-medium text-flash-600">
                             Featured

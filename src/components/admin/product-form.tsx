@@ -126,6 +126,13 @@ export function ProductForm({
     setError(null);
 
     const formData = new FormData(event.currentTarget);
+    // "Approve & publish" submits this same form — whatever the reviewer
+    // just fixed goes out in the same save, not a separate action that
+    // could fire before or instead of it — just forcing status to
+    // published regardless of what the status <select> currently shows.
+    if (formData.get("intent") === "approve") {
+      formData.set("status", "published");
+    }
 
     startTransition(async () => {
       const result = await saveProduct(formData);
@@ -435,15 +442,29 @@ export function ProductForm({
         </p>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <button
           type="submit"
+          name="intent"
+          value="save"
           disabled={pending || imagesUploading}
           className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
         >
           {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
           {product ? "Save changes" : "Create product"}
         </button>
+        {product?.status === "pending_review" && (
+          <button
+            type="submit"
+            name="intent"
+            value="approve"
+            disabled={pending || imagesUploading}
+            className="inline-flex items-center gap-2 rounded-lg border border-brand-600 px-6 py-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 disabled:opacity-50"
+          >
+            {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+            Approve &amp; publish
+          </button>
+        )}
         <Link
           href="/admin/products"
           className="rounded-lg border border-ink-200 px-6 py-3 text-sm font-medium transition hover:border-brand-400"
