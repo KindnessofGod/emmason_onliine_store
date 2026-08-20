@@ -9,7 +9,7 @@ import { MAX_CAPTURE_PHOTOS } from "@/lib/product-capture-config";
 import type { DbCategory } from "@/lib/db-types";
 
 /**
- * Mobile-first "photograph the box, let Claude read it" flow (ticket #8,
+ * Mobile-first "photograph the box, let the AI read it" flow (ticket #8,
  * ADR-0002 — a page in the existing dashboard, not a native app). Deliberately
  * thin: category picker + the same photo picker/uploader the full product
  * form already uses (see product-form.tsx) + one action. Everything the AI

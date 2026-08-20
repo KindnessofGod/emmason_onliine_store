@@ -9,5 +9,5 @@
 
 // Keeps a single capture request to a handful of images — enough to cover a
 // box's front, back and any inserts, without an admin accidentally queuing
-// up dozens of photos (and paged tokens) in one Claude call.
+// up dozens of photos (and paged tokens) in one extraction call.
 export const MAX_CAPTURE_PHOTOS = 6;

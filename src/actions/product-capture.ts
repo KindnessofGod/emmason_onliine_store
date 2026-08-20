@@ -1,8 +1,8 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { saveProduct } from "@/actions/admin";
 import { requireAdmin } from "@/lib/admin-auth";
@@ -14,19 +14,20 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 /**
  * Mobile capture + AI extraction (ticket #8, ADR-0002): staff photograph a
- * product's box on their phone, and this reads the photos with Claude to
- * prefill that category's spec template — landing at `pending_review` so a
- * human still signs off before it reaches the storefront. Kept out of
- * actions/admin.ts because it owns a different reason to change (the vision
- * prompt / extraction schema) than the rest of that file's CRUD and
- * stock-ledger actions — see Divergent Change in the self-review notes.
+ * product's box on their phone, and this reads the photos with an AI vision
+ * model to prefill that category's spec template — landing at
+ * `pending_review` so a human still signs off before it reaches the
+ * storefront. Kept out of actions/admin.ts because it owns a different
+ * reason to change (the vision prompt / extraction schema) than the rest of
+ * that file's CRUD and stock-ledger actions — see Divergent Change in the
+ * self-review notes.
  */
 
-// Claude Haiku is the deliberate model choice for this flow (see ticket #8 /
-// the conversation it came from): it's the cheapest tier that still reads
-// text off a product box reliably, and every call is billed to the shop
-// owner's own ANTHROPIC_API_KEY (see .env.example), not ours.
-const EXTRACTION_MODEL = "claude-haiku-4-5";
+// Switched from Claude Haiku to gpt-4o-mini at the shop owner's request
+// (no Anthropic credit available yet) — cheapest OpenAI tier that still
+// reads text off a product box reliably, and every call is billed to the
+// shop owner's own OPENAI_API_KEY (see .env.example), not ours.
+const EXTRACTION_MODEL = "gpt-4o-mini";
 
 export type CaptureResult =
   | { ok: true; productName: string }
@@ -41,10 +42,10 @@ const extractionInputSchema = z.object({
 });
 
 /** One nullable string field per category spec key, plus the product's name
- *  and brand — the only things we ask Claude to read off the box. Building
- *  this per-request (rather than one fixed schema) is what keeps the model
- *  constrained to *this category's* known spec-label keys instead of
- *  inventing its own field names that `specLabel` wouldn't recognise.
+ *  and brand — the only things we ask the model to read off the box.
+ *  Building this per-request (rather than one fixed schema) is what keeps
+ *  the model constrained to *this category's* known spec-label keys instead
+ *  of inventing its own field names that `specLabel` wouldn't recognise.
  *
  *  `specShape` is typed as `Partial<Record<SpecKey, …>>` (a finite key
  *  union), not `Record<string, …>` — a plain string index signature would
@@ -89,21 +90,21 @@ ${fieldList}`;
 }
 
 function extractionErrorMessage(error: unknown): string {
-  if (error instanceof Anthropic.AuthenticationError) {
-    return "The shop's Anthropic API key is missing or invalid — ask the owner to check ANTHROPIC_API_KEY.";
+  if (error instanceof OpenAI.AuthenticationError) {
+    return "The shop's OpenAI API key is missing or invalid — ask the owner to check OPENAI_API_KEY.";
   }
-  if (error instanceof Anthropic.RateLimitError) {
-    return "Claude is rate-limited right now — wait a moment and try again.";
+  if (error instanceof OpenAI.RateLimitError) {
+    return "The AI service is rate-limited right now — wait a moment and try again.";
   }
-  if (error instanceof Anthropic.APIError) {
-    return `Claude couldn't process those photos (${error.status ?? "request failed"}).`;
+  if (error instanceof OpenAI.APIError) {
+    return `The AI service couldn't process those photos (${error.status ?? "request failed"}).`;
   }
   return error instanceof Error ? error.message : "Could not read the photos.";
 }
 
 /**
- * Take the uploaded box photos + chosen category, ask Claude to read the box
- * against that category's spec template, and create a `pending_review`
+ * Take the uploaded box photos + chosen category, ask the model to read the
+ * box against that category's spec template, and create a `pending_review`
  * product from the result. Price, SKU and slug aren't things a photo of a
  * box can reliably tell us — they get safe placeholders here (price 0, no
  * SKU, an auto-generated slug) for staff to fix during review; that's the
@@ -137,27 +138,35 @@ export async function extractProductFromPhotos(
 
   let parsedOutput: z.infer<typeof ExtractionSchema> | null;
   try {
-    const client = new Anthropic();
-    const response = await client.messages.parse({
+    const client = new OpenAI();
+    const response = await client.chat.completions.parse({
       model: EXTRACTION_MODEL,
       max_tokens: 4096,
-      system:
-        "You are helping shop staff catalogue new inventory for a Nigerian phone and electronics store. You'll be shown photos of a product's box, taken with a phone camera on the shop floor. Read only text and specs actually printed on the box — never guess, infer, or fall back on general knowledge about the product line. Leave a field null if it isn't legible in the photos.",
       messages: [
+        {
+          role: "system",
+          content:
+            "You are helping shop staff catalogue new inventory for a Nigerian phone and electronics store. You'll be shown photos of a product's box, taken with a phone camera on the shop floor. Read only text and specs actually printed on the box — never guess, infer, or fall back on general knowledge about the product line. Leave a field null if it isn't legible in the photos.",
+        },
         {
           role: "user",
           content: [
             ...input.imageUrls.map((url) => ({
-              type: "image" as const,
-              source: { type: "url" as const, url },
+              type: "image_url" as const,
+              image_url: { url },
             })),
             { type: "text" as const, text: buildExtractionPrompt(category.name, specTemplate) },
           ],
         },
       ],
-      output_config: { format: zodOutputFormat(ExtractionSchema) },
+      response_format: zodResponseFormat(ExtractionSchema, "product_extraction"),
     });
-    parsedOutput = response.parsed_output;
+
+    const message = response.choices[0]?.message;
+    if (message?.refusal) {
+      return { ok: false, error: message.refusal };
+    }
+    parsedOutput = message?.parsed ?? null;
   } catch (error) {
     return { ok: false, error: extractionErrorMessage(error) };
   }
@@ -165,7 +174,7 @@ export async function extractProductFromPhotos(
   if (!parsedOutput) {
     return {
       ok: false,
-      error: "Claude couldn't read those photos clearly. Try retaking them in better light.",
+      error: "The AI couldn't read those photos clearly. Try retaking them in better light.",
     };
   }
 
