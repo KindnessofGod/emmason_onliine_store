@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAdminProduct } from "@/lib/admin-data";
+import { getAdminProduct, listStockMovements } from "@/lib/admin-data";
 import { listAdminCategories } from "@/lib/admin-data";
 import { ProductForm } from "@/components/admin/product-form";
+import { StockMovementPanel } from "@/components/admin/stock-movement-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,8 @@ export default async function EditProductPage({
   ]);
 
   if (!product) notFound();
+
+  const movements = await listStockMovements(product.id);
 
   return (
     <>
@@ -40,7 +43,12 @@ export default async function EditProductPage({
         </Link>
       </div>
 
-      <ProductForm categories={categories} product={product} />
+      <div className="grid gap-6 lg:grid-cols-[1fr_24rem] lg:items-start">
+        <ProductForm categories={categories} product={product} />
+        <div className="mt-6">
+          <StockMovementPanel productId={product.id} movements={movements} />
+        </div>
+      </div>
     </>
   );
 }

@@ -132,6 +132,25 @@ export interface OrderWithItems extends Order {
   items: OrderItem[];
 }
 
+/** See CONTEXT.md — Stock Movement, Restock, Sale, Adjustment. */
+export type StockMovementType = "restock" | "sale" | "adjustment";
+
+export interface StockMovementRow {
+  id: string;
+  product_id: string;
+  type: StockMovementType;
+  /**
+   * Signed delta this movement applied to `products.stock`: positive for a
+   * Restock, either sign for an Adjustment, negative for a Sale. See
+   * docs/adr/0001-stock-movement-as-audit-trail.md.
+   */
+  quantity: number;
+  unit_cost_kobo: number | null;
+  note: string | null;
+  logged_by: string | null;
+  created_at: string;
+}
+
 export interface WholesaleLeadRow {
   id: string;
   name: string;
