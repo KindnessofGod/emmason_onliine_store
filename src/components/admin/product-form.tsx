@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { saveProduct } from "@/actions/admin";
 import { koboToNaira } from "@/lib/money";
+import { PRODUCT_STATUSES } from "@/lib/product-status";
 import type { DbCategory, DbProduct } from "@/lib/db-types";
 
 /** Turn a product name into a URL slug as the user types. */
@@ -229,15 +230,21 @@ export function ProductForm({
             </p>
           </div>
 
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="isActive"
-              defaultChecked={product?.is_active ?? true}
-              className="size-4 rounded border-ink-200"
-            />
-            Visible in the store
-          </label>
+          <div>
+            <Label htmlFor="status">Status</Label>
+            <select
+              id="status"
+              name="status"
+              defaultValue={product?.status ?? "published"}
+              className={inputClass}
+            >
+              {PRODUCT_STATUSES.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label} — {item.description}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <label className="flex items-center gap-2 text-sm">
             <input

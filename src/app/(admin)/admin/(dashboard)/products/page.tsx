@@ -4,21 +4,24 @@ import { listAdminProducts } from "@/lib/admin-data";
 import { listAdminCategories } from "@/lib/admin-data";
 import { formatNaira } from "@/lib/money";
 import { StockEditor } from "@/components/admin/stock-editor";
+import { PRODUCT_STATUSES } from "@/lib/product-status";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; status?: string }>;
 }) {
-  const { q, category } = await searchParams;
+  const { q, category, status } = await searchParams;
   const categories = await listAdminCategories();
   const selected = categories.find((item) => item.slug === category);
+  const statusFilter = PRODUCT_STATUSES.find((item) => item.value === status)?.value;
 
   const products = await listAdminProducts({
     search: q,
     categoryId: selected?.id,
+    status: statusFilter,
   });
 
   return (
@@ -50,6 +53,18 @@ export default async function AdminProductsPage({
           {categories.map((item) => (
             <option key={item.id} value={item.slug}>
               {item.name}
+            </option>
+          ))}
+        </select>
+        <select
+          name="status"
+          defaultValue={status ?? ""}
+          className="rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        >
+          <option value="">All statuses</option>
+          {PRODUCT_STATUSES.map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
             </option>
           ))}
         </select>
@@ -107,9 +122,14 @@ export default async function AdminProductsPage({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {!product.is_active && (
+                        {product.status === "unpublished" && (
                           <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">
                             Hidden
+                          </span>
+                        )}
+                        {product.status === "pending_review" && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                            Pending review
                           </span>
                         )}
                         {product.is_featured && (

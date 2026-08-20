@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import type { DbCategory, DbProduct } from "@/lib/db-types";
+import type { DbCategory, DbProduct, ProductStatus } from "@/lib/db-types";
 
 export interface DashboardStats {
   ordersToday: number;
@@ -21,7 +21,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
   const [ordersResult, productsResult] = await Promise.all([
     supabase.from("orders").select("status, total_kobo, created_at"),
-    supabase.from("products").select("id, name, slug, stock").eq("is_active", true),
+    supabase.from("products").select("id, name, slug, stock").eq("status", "published"),
   ]);
 
   if (ordersResult.error) throw ordersResult.error;
@@ -58,6 +58,7 @@ export interface AdminProductRow extends DbProduct {
 export async function listAdminProducts(options?: {
   search?: string;
   categoryId?: string;
+  status?: ProductStatus;
 }): Promise<AdminProductRow[]> {
   const supabase = createSupabaseAdminClient();
 
@@ -67,6 +68,7 @@ export async function listAdminProducts(options?: {
     .order("name");
 
   if (options?.categoryId) query = query.eq("category_id", options.categoryId);
+  if (options?.status) query = query.eq("status", options.status);
   if (options?.search) {
     const safe = options.search.replace(/[,()\\]/g, " ");
     query = query.or(`name.ilike.%${safe}%,sku.ilike.%${safe}%,brand.ilike.%${safe}%`);

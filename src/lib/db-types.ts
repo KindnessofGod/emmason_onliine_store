@@ -26,6 +26,13 @@ export type FulfilmentMethod = "pickup" | "delivery";
 export type PaymentMethodDb = "on-delivery" | "transfer" | "card";
 export type ProductCondition = "new" | "uk-used" | "refurbished";
 
+/**
+ * A product's lifecycle: `pending_review` (captured by the field app, never
+ * approved), `published` (live on the storefront), `unpublished` (was live,
+ * since taken down). See CONTEXT.md — Product Status.
+ */
+export type ProductStatus = "pending_review" | "published" | "unpublished";
+
 export interface DbCategory {
   id: string;
   slug: string;
@@ -58,7 +65,7 @@ export interface DbProduct {
   warranty_months: number | null;
   rating: number;
   review_count: number;
-  is_active: boolean;
+  status: ProductStatus;
   is_featured: boolean;
   created_at: string;
   updated_at: string;

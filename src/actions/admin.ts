@@ -67,7 +67,7 @@ const productSchema = z.object({
   sku: z.string().trim().max(60).optional().or(z.literal("")),
   imageUrls: z.string().trim().max(2000).optional().or(z.literal("")),
   warrantyMonths: z.coerce.number().int().min(0).max(120).optional(),
-  isActive: z.boolean(),
+  status: z.enum(["pending_review", "published", "unpublished"]),
   isFeatured: z.boolean(),
 });
 
@@ -85,7 +85,7 @@ function readProductForm(formData: FormData) {
     sku: String(formData.get("sku") ?? ""),
     imageUrls: String(formData.get("imageUrls") ?? ""),
     warrantyMonths: String(formData.get("warrantyMonths") ?? "") || undefined,
-    isActive: formData.get("isActive") === "on",
+    status: String(formData.get("status") ?? "published"),
     isFeatured: formData.get("isFeatured") === "on",
   };
 }
@@ -118,6 +118,25 @@ export async function saveProduct(formData: FormData): Promise<ActionResult> {
     };
   }
 
+  const supabase = createSupabaseAdminClient();
+
+  // Pending review only exists for a product's first appearance (see
+  // CONTEXT.md — Product Status). Once a product has been published or
+  // unpublished it has already passed review, so an edit can never route it
+  // back into pending_review — a malformed submission just leaves the
+  // existing status alone instead.
+  let status = data.status;
+  if (data.id) {
+    const { data: existing } = await supabase
+      .from("products")
+      .select("status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (existing && existing.status !== "pending_review" && status === "pending_review") {
+      status = existing.status;
+    }
+  }
+
   const row = {
     category_id: data.categoryId,
     name: data.name,
@@ -133,11 +152,10 @@ export async function saveProduct(formData: FormData): Promise<ActionResult> {
       .map((url) => url.trim())
       .filter(Boolean),
     warranty_months: data.warrantyMonths ?? null,
-    is_active: data.isActive,
+    status,
     is_featured: data.isFeatured,
   };
 
-  const supabase = createSupabaseAdminClient();
   const { error } = data.id
     ? await supabase.from("products").update(row).eq("id", data.id)
     : await supabase.from("products").insert(row);

@@ -236,7 +236,7 @@ export async function queryProducts(query: ProductQuery = {}): Promise<Product[]
     query;
 
   const supabase = createSupabaseCatalogClient();
-  let request = supabase.from("products").select(PRODUCT_COLUMNS).eq("is_active", true);
+  let request = supabase.from("products").select(PRODUCT_COLUMNS).eq("status", "published");
 
   if (category) request = request.eq("categories.slug", category);
   if (seller) request = request.eq("seller_id", seller);
@@ -307,7 +307,7 @@ export async function featuredProducts(limit = 8): Promise<Product[]> {
   const { data, error } = await supabase
     .from("products")
     .select(PRODUCT_COLUMNS)
-    .eq("is_active", true)
+    .eq("status", "published")
     .eq("is_featured", true)
     .gt("stock", 0)
     .order("rating", { ascending: false })
@@ -322,7 +322,7 @@ export async function newArrivals(limit = 8): Promise<Product[]> {
   const { data, error } = await supabase
     .from("products")
     .select(PRODUCT_COLUMNS)
-    .eq("is_active", true)
+    .eq("status", "published")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -336,7 +336,7 @@ export async function onSaleProducts(limit = 8): Promise<Product[]> {
   const { data, error } = await supabase
     .from("products")
     .select(PRODUCT_COLUMNS)
-    .eq("is_active", true)
+    .eq("status", "published")
     .not("compare_at_price_kobo", "is", null)
     .limit(200);
 
@@ -373,7 +373,7 @@ async function countProducts(column: string, value: string): Promise<number> {
   const { count, error } = await supabase
     .from("products")
     .select("id", { count: "exact", head: true })
-    .eq("is_active", true)
+    .eq("status", "published")
     .eq(column, value);
 
   if (error) throw error;
@@ -397,14 +397,14 @@ export async function getPriceBounds(): Promise<{ min: number; max: number }> {
     supabase
       .from("products")
       .select("price_kobo")
-      .eq("is_active", true)
+      .eq("status", "published")
       .order("price_kobo", { ascending: true })
       .limit(1)
       .maybeSingle(),
     supabase
       .from("products")
       .select("price_kobo")
-      .eq("is_active", true)
+      .eq("status", "published")
       .order("price_kobo", { ascending: false })
       .limit(1)
       .maybeSingle(),
