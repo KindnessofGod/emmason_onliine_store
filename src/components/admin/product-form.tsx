@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
-import { saveProduct } from "@/actions/admin";
+import { ArrowDown, ArrowUp, Loader2, Trash2, UploadCloud } from "lucide-react";
+import { saveProduct, uploadProductImage } from "@/actions/admin";
 import { koboToNaira } from "@/lib/money";
 import { PRODUCT_STATUSES } from "@/lib/product-status";
 import type { DbCategory, DbProduct } from "@/lib/db-types";
@@ -34,6 +34,10 @@ export function ProductForm({
   const [slugTouched, setSlugTouched] = useState(Boolean(product));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [images, setImages] = useState<string[]>(product?.images ?? []);
+  // Lifted out of the picker so the submit button can stay disabled until
+  // every in-flight upload has either landed in `images` or failed.
+  const [imagesUploading, setImagesUploading] = useState(false);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -215,20 +219,16 @@ export function ProductForm({
         <legend className="px-1 text-sm font-semibold">Images &amp; visibility</legend>
 
         <div className="mt-2 space-y-4">
-          <div>
-            <Label htmlFor="imageUrls">Image URLs</Label>
-            <textarea
-              id="imageUrls"
-              name="imageUrls"
-              rows={3}
-              defaultValue={(product?.images ?? []).join("\n")}
-              placeholder="One URL per line"
-              className={`${inputClass} font-mono text-xs`}
-            />
-            <p className="mt-1 text-xs text-ink-500">
-              One per line. Leave empty to use the generated placeholder tile.
-            </p>
-          </div>
+          <ProductImagePicker
+            images={images}
+            onChange={setImages}
+            uploading={imagesUploading}
+            onUploadingChange={setImagesUploading}
+          />
+          {/* saveProduct still parses a newline/comma-separated string into
+              the `images text[]` column, so the picker's URLs are folded
+              back into that same wire shape here. */}
+          <input type="hidden" name="imageUrls" value={images.join("\n")} />
 
           <div>
             <Label htmlFor="status">Status</Label>
@@ -270,7 +270,7 @@ export function ProductForm({
       <div className="flex gap-3">
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || imagesUploading}
           className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
         >
           {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
@@ -284,6 +284,163 @@ export function ProductForm({
         </Link>
       </div>
     </form>
+  );
+}
+
+/**
+ * Picks, uploads, previews and reorders a product's photos. Each file is
+ * compressed and stored server-side by `uploadProductImage` as soon as it's
+ * picked (not deferred to form submit), so staff see the real hosted photo —
+ * and any per-file upload failure — immediately rather than at save time.
+ */
+function ProductImagePicker({
+  images,
+  onChange,
+  uploading,
+  onUploadingChange,
+}: {
+  images: string[];
+  onChange: (images: string[]) => void;
+  uploading: boolean;
+  onUploadingChange: (uploading: boolean) => void;
+}) {
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function handleFilesSelected(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = ""; // allow re-picking the same file later
+    if (files.length === 0) return;
+
+    onUploadingChange(true);
+    setUploadError(null);
+
+    // Sequential, not Promise.all: keeps uploaded URLs in the same order the
+    // files were picked in, and a phone on a slow connection isn't asked to
+    // push several multi-megabyte uploads at once.
+    const uploaded: string[] = [];
+    for (const file of files) {
+      const body = new FormData();
+      body.set("file", file);
+      const result = await uploadProductImage(body);
+      if (result.ok) {
+        uploaded.push(result.url);
+      } else {
+        setUploadError(result.error);
+      }
+    }
+
+    if (uploaded.length > 0) onChange([...images, ...uploaded]);
+    onUploadingChange(false);
+  }
+
+  function move(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= images.length) return;
+    const next = [...images];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  }
+
+  function remove(index: number) {
+    onChange(images.filter((_, i) => i !== index));
+  }
+
+  return (
+    <div>
+      <Label htmlFor="productImageFiles">Photos</Label>
+
+      {images.length > 0 && (
+        <ul className="mt-2 flex flex-wrap gap-3">
+          {images.map((url, index) => (
+            <li key={url} className="w-24">
+              <div className="relative aspect-square overflow-hidden rounded-lg border border-ink-200 bg-ink-50">
+                {/* Plain <img>, not next/image: older products may still carry
+                    externally-hosted URLs pasted before this feature existed,
+                    and the image optimizer only trusts our own Supabase
+                    storage origin (see next.config.ts remotePatterns). */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={url}
+                  alt={`Product photo ${index + 1}`}
+                  className="h-full w-full object-cover"
+                />
+                {index === 0 && (
+                  <span className="absolute left-1 top-1 rounded bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                    Primary
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 flex items-center justify-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => move(index, -1)}
+                  disabled={index === 0}
+                  aria-label="Move photo earlier"
+                  className="rounded border border-ink-200 p-1 disabled:opacity-30"
+                >
+                  <ArrowUp className="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(index, 1)}
+                  disabled={index === images.length - 1}
+                  aria-label="Move photo later"
+                  className="rounded border border-ink-200 p-1 disabled:opacity-30"
+                >
+                  <ArrowDown className="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => remove(index)}
+                  aria-label="Remove photo"
+                  className="rounded border border-ink-200 p-1 text-red-600"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <label
+        htmlFor="productImageFiles"
+        className={`mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-ink-300 px-4 py-2 text-sm font-medium text-ink-600 hover:border-brand-400 ${
+          uploading ? "pointer-events-none opacity-60" : ""
+        }`}
+      >
+        {uploading ? (
+          <Loader2 className="size-4 animate-spin" aria-hidden />
+        ) : (
+          <UploadCloud className="size-4" aria-hidden />
+        )}
+        {uploading ? "Uploading…" : "Add photos"}
+      </label>
+      {/* `capture` opens the phone's camera app alongside the regular photo
+          library picker (see docs/adr/0002-mobile-web-not-native-app.md) —
+          browsers that don't support it just fall back to a normal picker. */}
+      <input
+        id="productImageFiles"
+        type="file"
+        accept="image/*"
+        multiple
+        capture="environment"
+        onChange={handleFilesSelected}
+        disabled={uploading}
+        className="sr-only"
+      />
+
+      {uploadError && (
+        <p role="alert" className="mt-2 text-xs text-red-700">
+          {uploadError}
+        </p>
+      )}
+
+      <p className="mt-1 text-xs text-ink-500">
+        First photo is the primary image shown on the storefront. Leave empty to use the
+        generated placeholder tile.
+      </p>
+    </div>
   );
 }
 

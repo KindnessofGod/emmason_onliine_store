@@ -1,6 +1,8 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import sharp from "sharp";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
 import { cancelOrder, updateOrderStatus } from "@/lib/orders";
@@ -48,6 +50,68 @@ export async function setOrderStatus(
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${orderId}`);
   return { ok: true };
+}
+
+const PRODUCT_IMAGES_BUCKET = "product-images";
+
+// Mirrors the compression settings in scripts/source-images.mjs: this is a
+// mobile-first storefront (see docs/adr/0002), so photos are re-encoded to a
+// bounded JPEG rather than stored at whatever resolution a phone camera or
+// staff laptop produced them at.
+const MAX_IMAGE_DIMENSION = 1600;
+const IMAGE_JPEG_QUALITY = 82;
+const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // raw upload cap, before compression
+
+export type UploadImageResult = { ok: true; url: string } | { ok: false; error: string };
+
+/**
+ * Compress and store one staff-uploaded product photo, called once per file
+ * picked in the product form. The form collects the resulting public URLs
+ * client-side and folds them into the same newline-joined string
+ * `saveProduct` already expects, so the stored `images` shape is unchanged.
+ */
+export async function uploadProductImage(formData: FormData): Promise<UploadImageResult> {
+  await requireAdmin();
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    return { ok: false, error: "No file received" };
+  }
+  if (!file.type.startsWith("image/")) {
+    return { ok: false, error: `${file.name || "That file"} isn't an image` };
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return { ok: false, error: `${file.name || "That file"} is too large (max 15MB)` };
+  }
+
+  const raw = Buffer.from(await file.arrayBuffer());
+
+  let compressed: Buffer;
+  try {
+    compressed = await sharp(raw)
+      .rotate() // respect EXIF orientation before it's stripped
+      .resize({
+        width: MAX_IMAGE_DIMENSION,
+        height: MAX_IMAGE_DIMENSION,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .jpeg({ quality: IMAGE_JPEG_QUALITY, mozjpeg: true })
+      .toBuffer();
+  } catch {
+    return { ok: false, error: `${file.name || "That file"} doesn't look like a valid image` };
+  }
+
+  const objectPath = `uploads/${randomUUID()}.jpg`;
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.storage
+    .from(PRODUCT_IMAGES_BUCKET)
+    .upload(objectPath, compressed, { contentType: "image/jpeg", upsert: false });
+
+  if (error) return { ok: false, error: error.message };
+
+  const { data } = supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(objectPath);
+  return { ok: true, url: data.publicUrl };
 }
 
 const productSchema = z.object({
